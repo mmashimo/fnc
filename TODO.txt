@@ -1,0 +1,95 @@
+Tests:
+-----
+1) "args": ["4-.5/7"],  // This looks like 4 and -.5, but '-' followed is followed by '.' which does not make it a number
+2) "args": ["4 -5/7"],  // This looks like 4 and -5, if parsed in number sequence. This should parse as '4-5'
+3) "args": ["sin(60)","5.6","*", "cos(30)"], // due to lack of func between sin(60) and 5.6, it is pushed on the stack
+4) "args": ["6.*(9-1)/inv(10.0+2)-4.2"],
+5) "args": ["2pi/180"],
+6) "args": ["25C::F"],
+7) "args": ["1in::mm"],
+
+
+Bug List:
+--------
+[x] - "args": ["sin(60)"] - should use 'sin' as "rad". Default angle conversion is not working
+[ ] - "args": ["2pi 180"],  - Returns two numbers in the stack. Number to var is works as multiply,
+   but Var-to-number transition after first implied does not multiply - lack of implied function (see 3) above
+[ ] - "units" and "format" are not passed in multiplication/function of "2pi:deg"
+
+TODO:
+----
+[ ] - Var entries
+	[x] - Recognize variables - save in variable list
+	[x] - Input numeric values from console
+		[x] - Input variable if variable not defined while computing
+		[x] - Variable setting while parsing should be different from while running
+	[x] - Variable setting (ex: y=2.4)
+		[x] - before equation: ex. y=2.4 2pi*y+y
+		[x] - Set variable on the fly (ex. 2pi*2.4=x; 5.2-x)
+			[x] - Parse variables: (ex. y=3.5)
+			[x] - Save value into variable (ex. 2pi=x)
+			[x] - Differentiate: x=2.5 with 2pi=x where a space is needed between = and x
+		[x] - Make sure is reloaded after equations: ex. 2pi*y=y 5.2-y
+		[x] - Make sure constants are not overwritten: ex. 2pi*y=pi 5.2-pi
+[ ] - clear stack using delimiter ';' - esp. to express new equations from multiplication
+[ ] - Numeric formatting
+	[ ] - Default should be %.9f
+	[ ] - Numeric formatting (similar C-style):
+		> fnc pi:%.2f
+		> 3.14
+[ ] - UTF-8 use - esp. of degrees, inches, Ohms, micro and fractions, etc.
+[ ] - Verbose mode for:
+	[ ] - command argument parsing - in 'fnc.cpp'
+	[ ] - intermediate value output - in 'func.cpp'
+	[ ] - add '--help' in command line
+[ ] - Date-Time parsing
+	- Time/date formatting:
+		> fnc 6:03:29p + 1:43m<br>
+		> **6:05:12p**<br>
+		> fnc ; - 1:10:02h<br>
+		> **4:55:10**p
+[ ] - Simplify unit-types. Differentiate between common unit-types verses common unit-select strings. (Num.cpp)
+	[ ] NOTE: UnitDef is in Convert.h while actual Units are defined in Num.cpp (kinda crazy)
+	[ ] NOTE: Number types are in numUnit.h while number-types are used in Num.cpp
+[ ] - Separate number handling (m_dValue and m_lValue as structures - Number) from Num
+	[ ] - Use variables with Num rather than ConstantVars
+[ ] - On-the-fly formatting
+	[ ] - Use of ":%"?
+[ ] - Finish interactive mode
+	[ ] - Extract using getch() - especially for 'bash'
+	[ ] - Save/retrieve functions from INI map.
+	[ ] - Set radian/degree as default - save in INI file.
+	[ ] - Interactive mode with ncurses (TBD?)
+[ ] - Need interactive functions:
+	[ ] - List of (successful) equations
+	[ ] - List of results in stack, with equivalent equations (?)
+	[ ] - list of units (list s_conversion)
+	[ ] - list of unit-conversions for a given conversion
+	[ ] - list of variables (and constants?)
+	[ ] - create an external list added when needed
+	[ ] - Add to unit-conversions
+[ ] - Save variables
+	- Saves functions/numbers:
+		> fnc 2x+y=f<br>
+		> fnc x=4 y=5 2x+y
+		> **13**
+	[ ] - Function result (ex: 4+3y=m - where 'm' saves the value of '4+3y')
+
+[ ] - comma and semi-colon functions (TBD)
+[ ] - Use of Complex numbers (TBD):
+	[ ] - Number entry (?)
+	[ ] - Frequency computation on RC circuit (R,C>frequency; freq,R>C; etc.) - algebraic convesion (TBD)
+	[ ] - Resolving quadratic equations with 2 solutions (ex. TBD)
+[ ] - Internal or external use of Python/MatLab
+[ ] - Doxygen cleanup
+[ ] - CMake tests for all builds
+[ ] - CMake installation (./bootstrap?)
+
+
+Vars to add:
+-----------
+[ ] - Angle: Gradian
+[ ] - Temperature: Kelvin, Rankine
+[ ] - Volume
+[ ]
+
