@@ -16,11 +16,12 @@ fnc (pronouced "funk") is yet another console calculator program equivalent to '
 
 ### Feature details
 - Non-hierarchical expression (read from left-to-right like 'bc') - similar to punching number into a calculator. Explicit hierarchy (using parentheses to establish precedence and nesting) is intuitive for calculators when punching numbers and functions in series. Few things to make life easier:
-	- Unary functions can be (ex.): _sin(60)_ or _60 sin_ - allowing for functions to work left-to-right, again similar to punching numbers into a calculator.
+	- Unary functions can be expressed either way: (ex.) _60 sin_ or _sin(60)_ - allowing for functions to work left-to-right, again similar to punching numbers into a calculator.
 	- Algebraic multiplication of variables (ex. _2pi_ or _pi 2_ - note space to differentiate variable named _pi2_ which can be part of a variable constant)
 - Do metric and/or angle conversions on the fly. Units entered after numbers.
+	- Implied angle is "Degrees" (is configurable)
 	- Have degree-radian convert to radians when doing transcendentals
-	- automatically construct units algebraically (TBD)
+	- automatically adjust for units algebraically (TBD)
 - Resolve variables - parsed or on-the-fly 
 	- Variables define a number when parsing (ex. _y=3.2_ ). (NOTE must be a number only)
 	- If a undefined variable is in an expression, _fnc_ prompts for a number (or an expression that returns a number)

@@ -17,6 +17,10 @@
  #include <deque>
 #endif
 
+#ifdef _MSC_VER
+#include <direct.h>
+#endif
+
 #include "iniParser.h"
 
 #include "exec.h"
@@ -61,6 +65,18 @@ bool IniParser::exists() const
 	return exists(m_iniFile);
 }
 
+static std::string homeDir()
+{
+#ifdef _MSC_VER
+	size_t retSize = 1024;
+	char buf[1024];
+	errno_t retCode = getenv_s(&retSize, buf, 1024, "HOME");
+	return std::string(buf);
+#else
+	return std::string(getenv("HOME"));
+#endif
+}
+
 // static
 void IniParser::constructFileName(	std::string& iniFile,
 									const std::string& path,
@@ -75,7 +91,8 @@ void IniParser::constructFileName(	std::string& iniFile,
 	else if (path[0] == '~')
 	{
 		std::string tmp = path.substr(1);
-		iniFile = getenv("HOME");
+
+		iniFile = homeDir();
 		iniFile += tmp;
 		if (iniFile.back() != '/')
 			iniFile += '/';
@@ -423,7 +440,7 @@ bool IniParser::createPath(const std::string& path)
 		else if (tmp[0] == '~')
 		{
 			// replace with "HOME"
-			tmp0 += getenv("HOME");
+			tmp0 += homeDir();
 			paths.push_back(tmp0);
 			tmp = tmp.substr(1);
 			tmp0.clear();
@@ -456,7 +473,11 @@ bool IniParser::createPath(const std::string& path)
 			}
 			else
 			{
+#ifdef _MSC_VER
+				int check = _mkdir(tmp.c_str());
+#else
 				int check = mkdir(tmp.c_str(), 0777);
+#endif
 				if (check < 0)
 				{
 					std::cout << "!Error creating '" << tmp << "' - returned " << check << std::endl;

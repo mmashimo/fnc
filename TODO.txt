@@ -31,12 +31,25 @@ TODO:
 			[x] - Differentiate: x=2.5 with 2pi=x where a space is needed between = and x
 		[x] - Make sure is reloaded after equations: ex. 2pi*y=y 5.2-y
 		[x] - Make sure constants are not overwritten: ex. 2pi*y=pi 5.2-pi
-[ ] - clear stack using delimiter ';' - esp. to express new equations from multiplication
+	[ ] - Formatting/unit passing: ex. y:F:%3.1f=3.2 (where y is always expressed formatted C)
+		[ ] - C-format with preceeding text: ex. $ (:'$%.2f'). Look for % or ' (ending ', recognize \')
+	[ ] - Stacked variable handling: ex. y 4.5 x <= each stack variable is multiplied
+	[ ] - Parse-checking, especially for parentheses-nesting
+[ ] - clear stack using delimiter ';'
+	[ ] - express new equation(s) after assignment (parsing operation):
+		ex. 2y+5=x; 4.5-x as opposed to 2y+5=x 4.5-x <= this will multiply x to 4.5 before subtracting
+	[ ] - complete stack multiplication, implied stack operation (run-time operation) => multiply current stack contents
 [ ] - Numeric formatting
-	[ ] - Default should be %.9f
+	[x] - Default should be %.9f
+	[x] - Hexadecial "0x" %X
 	[ ] - Numeric formatting (similar C-style):
 		> fnc pi:%.2f
 		> 3.14
+	[ ] - Fraction formatting (using radix of 8, 16, 32, 64, div2, div10, div100 div1000, etc.)
+	[ ] - Non-formatted removal of leading/training zeroes
+	[ ] - Few issues need to be ironed out:
+		[ ] - Float representations: ex. f->e
+		[ ] - Integer representations of float: ex. 3.5 => 3 (floor) or =>4 (ceiling/round)
 [ ] - UTF-8 use - esp. of degrees, inches, Ohms, micro and fractions, etc.
 [ ] - Verbose mode for:
 	[ ] - command argument parsing - in 'fnc.cpp'
@@ -48,19 +61,34 @@ TODO:
 		> **6:05:12p**<br>
 		> fnc ; - 1:10:02h<br>
 		> **4:55:10**p
+[ ] - Saving functions, assignments, etc.
+	[ ] - Need generic functions list (not associated with "--"):
+		[ ] - list of variables
+		[ ] - list of units
+		[ ] - list of unit-conversions
+		[ ] - list of operators/functions
+	[ ] - Method to save/retrieve (in ~/.fnc):
+		[ ] - variables, including unit/format (above)
+		[ ] - functions
+		[ ] - unit-conversions
+	[ ] - command line argument saves (by configuration)
+	[ ] - formula retrieval (by configuration)
+		[ ] - Binary function retrieval
+	[ ] - Need a method to remove functions to archive
 [ ] - Simplify unit-types. Differentiate between common unit-types verses common unit-select strings. (Num.cpp)
 	[ ] NOTE: UnitDef is in Convert.h while actual Units are defined in Num.cpp (kinda crazy)
 	[ ] NOTE: Number types are in numUnit.h while number-types are used in Num.cpp
 [ ] - Separate number handling (m_dValue and m_lValue as structures - Number) from Num
 	[ ] - Use variables with Num rather than ConstantVars
 [ ] - On-the-fly formatting
-	[ ] - Use of ":%"?
+	[ ] - Use of ":%"
+	[ ] - Convert a single number from decimal to hexadecimal (v.v.)
 [ ] - Finish interactive mode
 	[ ] - Extract using getch() - especially for 'bash'
 	[ ] - Save/retrieve functions from INI map.
 	[ ] - Set radian/degree as default - save in INI file.
 	[ ] - Interactive mode with ncurses (TBD?)
-[ ] - Need interactive functions:
+[ ] - Need interactive functions (see above for command argument lists):
 	[ ] - List of (successful) equations
 	[ ] - List of results in stack, with equivalent equations (?)
 	[ ] - list of units (list s_conversion)
@@ -68,14 +96,8 @@ TODO:
 	[ ] - list of variables (and constants?)
 	[ ] - create an external list added when needed
 	[ ] - Add to unit-conversions
-[ ] - Save variables
-	- Saves functions/numbers:
-		> fnc 2x+y=f<br>
-		> fnc x=4 y=5 2x+y
-		> **13**
-	[ ] - Function result (ex: 4+3y=m - where 'm' saves the value of '4+3y')
-
-[ ] - comma and semi-colon functions (TBD)
+[ ] - Numeric precision (ex.) binary-128, IEEE-754 decimal (TBD)
+[ ] - Comma functions (TBD)
 [ ] - Use of Complex numbers (TBD):
 	[ ] - Number entry (?)
 	[ ] - Frequency computation on RC circuit (R,C>frequency; freq,R>C; etc.) - algebraic convesion (TBD)
