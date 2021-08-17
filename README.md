@@ -68,9 +68,17 @@ Generally, the script works in the following manner:
 - Parsing happens from left to right. Case is important.
 - Numberic or '-' followed by numerics are 'numbers'.
 	- A number can have units immediately after the number or by adding ':' and units the number (ex. _25F_ is the same as _25:F_ for degrees Fahrenheit). Units are alpha-numeric (but starts with an alphabet).
+	- Number formatting is similar to Units, but is always enclosed in single quotes. It is important to make sure there is an ending quote unless using escape (\') for feet or minutes,
+	for example. 5'6" (5-feet, 6-inches) is good enough. 5 feet cannot use 5:' otherwise parsing
+	error will ensue.
+	- Time string (TBD) is differentiated with units/format by ##:##. Numericall, saved in the
+	in seconds by default unless explicitly set. 12:56 is 12-minutes, 56-seconds. 12:56m is
+	12-hours 56-minutes. 12:25d will format December 25 in days from January 1st (minus one).
+	- Time-Date format is separated by underscore (#). 1999-12-31#23:59:59 is stored as J2000,
+	but in seconds rather than fractional part of a day
 	- Differentiate units from variables if not sure. Add a space in front of variables - especially if a variable name exists as a unit name (ex. _2m_ is 2 meters, _2 m_ will multiply _2_ to _m_)
-	- You also add C-style formatting by adding ":%" after the number. (ex. _25:F:%0.1f_)
-	- Hexidecimal expression always starts with "0x" - ends when alpha-numeric is no longer 0-9 and A-F (case not important). It is always best to add a space if not sure. Note: _0x19C_ is not the same as _0x19:C_
+	- You also add C-style formatting by adding ":'%.9f'" after the number. (ex. _25:F:'%0.1f'_)
+	- Hexidecimal expression starts with "0x" - ends when alpha-numeric is no longer 0-9 and A-F (case not important). It is always best to add a space if not sure. Note: _0x19C_ is not the same as _0x19:C_. When computing with hexadecimal, it may help to have unit-less conversions
 - Variable names must start with alphabet (a-z, A-Z). Variables can have alpha-numerics (TBD-bugs exists with alpha with numbers). Note that units are also alphanumerics starting with an alphabet. Be careful that undefined units will become a variable.
 	- Variable definition (_<var>=###_) or variable assignment (_=<var>_) cannot have spaces between "=" and _<var>_ name. Parsing "=" cannot recognize the start/end of variable name.
 	- Variable definition (_<var>=###_) is processed during parsing.
@@ -133,3 +141,8 @@ Generally, the script works in the following manner:
 	> **0.5**<br>
 	> **12.566371**<br>
 
+
+# How this works
+'fnc' has two (2) internal parsers to make sure functions, numbers and variables are separated correctly. The parser works on the principle of use-case driven and syntactical approximation. Input breakdown has a general form that users are likely to input functions by general mathematical syntax: for example: binary functions (+,-,*,/) would be: ###-function-### and unary functions are either ###-function (as if to key in on a calculator) or algebraically, function(###) - using parentheses. Algebraic functions are similar using variables: x-function-y or algebraically, function(x,y)=... where the algebraic terms use x and y (in ...). Finally, syntax allows for stack oriented programming (also known as RPN or Reverse Polish Notation) where, like micropressor or ALU functions, it follows ###-###-function. The latter is possible through syntax since 'fnc' processes functions on a stack. The orientation is always the same after it has been parsed. Sub-functioning, or better illustrate as expanding a stack to include sub-stack, is done through parenthesis. In this structure, however, implicit hierarchy cannot established (for example: 1 + 2 * 3 will yield 9 rather than 7 - since it reads left to right). The reason hierarchy is not set is because we are prioritizing by stack orientation.
+
+Few notes about number entry: Numbers are read in sequence and very sensitive to spaces. All numbers start with check for '-' (negative sign) immediately followed by a number. Please note at a negative fractional decimal value must have a '0' in front of the decimal-point (-0.1 rather than -.1) otherwise it is not possible to distinguish subtraction with decimal numbers (-.1 will subtract 0.1 from previous value).
