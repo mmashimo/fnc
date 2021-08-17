@@ -33,10 +33,12 @@
 /// TODO: Conversion unit names from its constructs
 typedef struct
 {
-	UnitType    type;
-	std::string from;
-	std::string to;
+
+	UnitType     type;
+	CalString   from;
+	CalString   to;
 	CalString   formula;
+
 } ConversionFunction;
 
 /// @brief Unit Definition class.
@@ -49,7 +51,7 @@ public:
 	NumUnit();
 
 	/// @brief Construct Unit from input string (either definition or parsed)
-	NumUnit(const std::string& type);
+	NumUnit(const CalString& type);
 
 	/// @brief Copy constructor
 	NumUnit(const NumUnit& ref) {copyHelper(ref);}
@@ -94,17 +96,20 @@ public:
 	/// @brief Checks if the UNit is an Radian Angle type
 	bool isRad() const;
 
+	/// @brief Check if Unit is Default (just number)
+	bool isDefault() const;
+
 	/// @brief Returns unit-key-string
-	const std::string& keyString() const { return m_units.unitKey; }
+	const CalString& keyString() const;
 
 	/// @brief Returns UnitType for saving in variables
-	const UnitType& unitType() const { return m_units.unitType; }
+	const UnitType& unitType() const;
 
 	/// @brief Returns expected NumberType
-	const NumberType& numberType() const { return m_units.expectType; }
+	const NumberType& numberType() const;
 
 	/// @brief Shows displayed string
-	const std::string& asString() const { return m_units.displayed; }
+	const CalString& asString() const;
 
 	/// @brief Finds the expression that converts to another unit
 	bool findConversion(const NumUnit& to, CalString& func);
@@ -113,7 +118,7 @@ public:
 	bool findConversion(const UnitDefs& to, CalString& func);
 
 	/// @brief Finds the Unit Def for a given string
-	static int findUnits(const std::string& string, UnitDefs& def);
+	static int findUnits(const CalString& string, UnitDefs& def);
 
 	/// @brief List of Units other functions can use, if needed
 	static std::vector<UnitDefs> s_units;
@@ -130,6 +135,9 @@ private:
 
 	/// @brief - Internally uses the UnitDef in a list
 	UnitDefs m_units;
+
+	/// @brief - Checks if the units are defined
+	bool     m_defined;
 };
 
 

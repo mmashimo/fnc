@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <string>
+#include "calstring.h"
 
 using NumberType = uint32_t;
 
@@ -74,22 +74,38 @@ enum UnitType : uint16_t
 /// Used to construct s_units
 typedef struct _unit_defs
 {
+#if 0
 	std::string unitKey;    // Used for Unit conversion
 	std::string unitStr;	// Parsed unit
 	UnitType    unitType;
 	NumberType  expectType; // Expected number type, if any
 	std::string displayed;
 	std::string description;
+#endif
+	CalString  unitKey;    // Used for Unit conversion
+	CalString  unitStr;	// Parsed unit
+	UnitType   unitType;
+	NumberType expectType; // Expected number type, if any
+	CalString  displayed;
+	CalString  description;
 } UnitDefs;
 
 /// @brief Constant definition struct.
 /// Used to construct Constants and Variables
 typedef struct _constantVars
 {
+#if 0
 	std::string varName;
 	double      value;
 	NumberType  num_type;
 	UnitType    unit_type;
 	std::string units;
+#endif
+	CalString   varName;
+	double      value;
+	NumberType  num_type;
+	UnitType    unit_type;
+	CalString   units;
+
 
 } ConstantVars;

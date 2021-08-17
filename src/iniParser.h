@@ -1,5 +1,29 @@
-
-
+/// @file
+///
+/// @brief Header for INI-Parsing Utility.
+///
+/// This class is used for generic INI parsing, but here, we added (few)
+/// functions specific to FNC project just so we can keep this somewhere safe.
+/// (NOTE: use of FNC_PROJECT - for 'fnc' project)
+///
+/// Much of the original code (written in C) has been modified for C++
+/// but modified for MS-VC from gcc and returned back to gcc. There are known
+/// issues and dissimilarities that are not fully vetted.
+///
+/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+///
+///  This program is free software: you can redistribute it and/or modify
+///  it under the terms of the GNU General Public License as published by
+///  the Free Software Foundation, either version 3 of the License, or
+///  any later version.
+///
+///  This program is distributed in the hope that it will be useful,
+///  but WITHOUT ANY WARRANTY; without even the implied warranty of
+///  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+///  GNU General Public License for more details.
+///
+///  You should have received a copy of the GNU General Public License
+///  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -8,14 +32,31 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
+// For special implementation of FNC, look for FNC_PROJECT
+// #ifdef FNC_PROJECT
+	#include "exec.h"
+// #endif
+
 class IniParser
 {
 public:
 	/// @brief Constructor
 	IniParser(std::string& iniFile);
 
+	/// @brief Construct using path and file name contents
+	IniParser(const std::string& path,
+			const std::string& fname,
+			const bool savePath = false);
+
 	/// @brief Destructor
 	~IniParser();
+
+// #ifdef FNC_PROJECT
+	void configure(Exec& exec);
+// #endif
+
+	/// @brief Accessor to file name used for this iniParser
+	const std::string& getFileName() const { return m_iniFile; }
 
 	/// @brief Checks if INI exists
 	bool exists() const;
@@ -85,6 +126,9 @@ private:
 
 	/// @brief Default File name used to change
 	std::string m_iniFile;
+
+	/// @brief Debug input/output if errors occur
+	static bool m_debugErrors;
 
 	static std::string m_defaultPath;
 	static std::string m_defaultFile;

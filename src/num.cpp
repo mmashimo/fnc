@@ -54,6 +54,7 @@ Num::Num(const double value,
 	, m_type(numType)
 	, m_unit(unit)
 	, m_format(format)
+	, m_autoFormat(true)
 {
 }
 
@@ -63,6 +64,7 @@ Num::Num(const ConstantVars& var)
     , m_type(var.num_type)
 	, m_unit(var.units)
     , m_varName(var.varName)
+	, m_autoFormat(true)
 {
 }
 
@@ -86,6 +88,7 @@ void Num::copyHelper(const Num& ref)
 	m_unit = ref.m_unit;
 	m_format = ref.m_format;
 	m_varName = ref.m_varName;
+	m_autoFormat = ref.m_autoFormat;
 }
 
 bool Num::operator==(const Num& ref)
@@ -116,7 +119,7 @@ bool Num::operator==(const ConstantVars& var)
     return m_dValue == var.value;
 }
 
-bool Num::parse(CalString& eq, std::string& message)
+bool Num::parse(CalString& eq, CalcList& message)
 {
 	// Remove leading spaces
 	eq.trimLeft();
@@ -132,7 +135,7 @@ bool Num::parse(CalString& eq, std::string& message)
 		{
 			if (!parseNumber(eq, message))
 			{
-				std::cout << "Num::parse() - errored: " << message << std::endl;
+				std::cout << "Num::parse() - errored: " << message.asString() << std::endl;
 				return false;
 			}
 		}
@@ -160,7 +163,7 @@ bool Num::parse(CalString& eq, std::string& message)
 					bDone = true;
 			}
 		}
-		else if (isalpha(eq[0]))
+		else if (isalpha(eq[0]) || eq.isUnitString())
 		{
 			// If units were not found, the stop searching
 			if(!parseUnits(eq, message))
@@ -177,18 +180,20 @@ bool Num::parse(CalString& eq, std::string& message)
 }
 
 /// @brief Parses number from equation
-bool Num::parseNumber(CalString& eq, std::string& message)
+bool Num::parseNumber(CalString& eq, CalcList& message)
 {
 	if (eq.empty())
 	{
-		message = "Num::parseNumber() - empty string";
+		CalString msg;
+		msg = "Num::parseNumber() - empty string";
+		msg.setErrorType();
+		message.add(msg);
 		return false;
 	}
 
 	int pos = eq.size();
 	int i = 0;
 	int decPt = 0;
-	std::string numb;
 
 	// Local loop done
 	bool done = false;
@@ -196,14 +201,14 @@ bool Num::parseNumber(CalString& eq, std::string& message)
 	// Check for negative number, first
 	if ((eq[0] == '-') && (pos > 1) && isdigit(eq[1]))
 	{
-		numb.push_back('-');
-		eq.left(1);
+		m_numString.push_back('-');
+		eq.shiftLeft(1);
 		--pos;
 	}
 	// Check for hexidecimal number
-	else if ((eq[0] == '0') && (pos > 2) && (eq[1]=='x'))
+	else if ((pos > 2) && (eq[0] == '0') && (eq[1]=='x'))
 	{
-		eq.left(2); // Remove "0x" - expose hex numbers
+		eq.shiftLeft(2); // Remove "0x" - expose hex numbers
 		CalString tmp = eq.leftHexOnly();
 		// There is no decimal point, so collect alpha-numerics using CalString check
 		pos = tmp.size();
@@ -216,15 +221,17 @@ bool Num::parseNumber(CalString& eq, std::string& message)
 			char *ptr;
 			m_lValue = strtol(tmp.c_str(), &ptr, 16);
 			setInteger();
-			eq.left(pos);
+			eq.shiftLeft(pos);
 			m_varName += tmp;
+			m_varName.setNumberType();
+			message.push_back(m_varName);
 		}
 		else
 		{
 			m_lValue = 0;
 		}
 		// Default formatting
-		m_format = "%X";
+		m_format = "0x%X";
 		return true;
 	}
 
@@ -232,8 +239,8 @@ bool Num::parseNumber(CalString& eq, std::string& message)
 	{
 		if (isdigit(eq[0]))
 		{
-			numb.push_back(eq[0]);
-			eq.left(1);
+			m_numString.push_back(eq[0]);
+			eq.shiftLeft(1);
 			pos--;
 			i++;
 		}
@@ -242,19 +249,44 @@ bool Num::parseNumber(CalString& eq, std::string& message)
 			// Decimal value
 			if (i == 0)
 			{
-				numb.push_back('0');
+				m_numString.push_back('0');
 			}
-			numb.push_back('.');
-			eq.left(1);
+			m_numString.push_back('.');
+			eq.shiftLeft(1);
 			pos--;
 			i++;
 			decPt++;
 		}
+		else if (eq[0] == ':')
+		{
+			// If ":" is found after a number, check for unit, format or date/time format
+			if ((eq.size() == 0) || isdigit(eq[1]))
+			{
+				// parse date/time format
+				done = parseDateTime(eq, message);
+			}
+			else if (eq[1] == ':')
+			{
+				// We have "::" which is a conversion function. Let Func::parseFunction() take care of it
+				done = true;
+			}
+			else if (eq[1] == '\'')
+			{
+				m_numString.push_back(':');
+				eq.shiftLeft(1);
+				// parse number format
+				parseFormat(eq, message);
+			}
+
+		}
 		else if (i == 0)
 		{
-			message = "Num::parseNumer '";
-			message += eq.c_str();
-			message += "' <= Not a number";
+			CalString msg;
+			msg = "Num::parseNumer '";
+			msg += eq.c_str();
+			msg += "' <= Not a number";
+			msg.setErrorType();
+			message.add(msg);
 			return false;
 		}
 		else
@@ -263,77 +295,99 @@ bool Num::parseNumber(CalString& eq, std::string& message)
 		}
 	}
 
-	if (numb.empty())
+	if (m_numString.empty())
 		return false;
+
+	m_numString.setNumberType();
+	message.push_back(m_numString);
 
     // Make sure number or variable type is not set
 	if ((decPt == 0) && !isDouble())
 	{
 		setInteger();
-		m_lValue = atoi(numb.c_str());
+		m_lValue = atoi(m_numString.c_str());
 	}
 	else
 	{
 		setDouble();
-		m_dValue = atof(numb.c_str());
+		m_dValue = atof(m_numString.c_str());
 	}
 
 	if (m_varName.empty())
 	{
-		m_varName = numb;
+		m_varName = m_numString;
 	}
 
 	return true;
 }
 
-bool Num::parseUnits(CalString& eq, std::string& message)
+bool Num::parseUnits(CalString& eq, CalcList& message)
 {
-	// Units are alway alpha string, will never have numbers or symbols
-	CalString tmp = eq.leftAlphaOnly();
-
-	if (tmp.empty())
-	{
-		message = "Unit '";
-		message += eq.c_str();
-		message += "' in number/variable: ";
-		message += m_varName.c_str();
-		message += " - is invalid";
-		return false;
-	}
-
 	UnitDefs def;
-	int findPos = NumUnit::findUnits(tmp, def);
+	int findPos = NumUnit::findUnits(eq, def);
 	if (findPos > 0)
 	{
+		CalString tmp(eq);
+		tmp.left(findPos);
+
+		if (message.back().isNumberType())
+		{
+			// Add to message type
+			tmp.setNumberType();
+			message.back() += tmp;
+		}
+		else
+		{
+			tmp.setUnitType();
+			message.push_back(tmp);
+		}
+
 		m_unit = def;
 
 		// Shift out the unit string
-		eq.left(findPos);
+		eq.shiftLeft(findPos);
 		return true;
+	}
+	else
+	{
+		CalString msg;
+		msg = "Unit '";
+		msg += eq.c_str();
+		msg += "' in number/variable: ";
+		msg += m_varName.c_str();
+		msg += " - is invalid";
+		msg.setErrorType();
+		message.add(msg);
+		return false;
 	}
 
 	return false;
 }
 
 /// @brief Parses format
-bool Num::parseFormat(CalString& eq, std::string& message)
+bool Num::parseFormat(CalString& eq, CalcList& message)
 {
+	CalString tmp;
 	if (eq.empty())
 	{
-		message = "Num::parseFormat() - empty string!";
+		tmp = "Num::parseFormat() - empty string!";
+		tmp.setErrorType();
+		message.add(tmp);
 		return false;
 	}
 
 	if (eq[0] != ':')
 	{
-		message = "Num::parseFormat(";
-		message += eq.c_str();
-		message += ") - is NOT formatted";
+		tmp = "Num::parseFormat(";
+		tmp += eq.c_str();
+		tmp += ") - is NOT formatted";
+		tmp.setErrorType();
+		message.add(tmp);
 		return false;
 	}
 
 	// Remove ":"
-	eq.left(1);
+	eq.shiftLeft(1);
 	if (eq[0] != '%')
 	{
 		return parseUnits(eq, message);
@@ -343,13 +397,13 @@ bool Num::parseFormat(CalString& eq, std::string& message)
 	while (!eq.empty() && !isspace(eq[0]))
 	{
 		m_format.push_back(eq[0]);
-		eq.left(1);
+		eq.shiftLeft(1);
 	}
 	return true;
 }
 
 /// @brief Parse variables - returns -1 if not a variable
-bool Num::parseVar(CalString& eq, std::string& message)
+bool Num::parseVar(CalString& eq, CalcList& message)
 {
 	int pos = 0;
 	UnitDefs def;
@@ -368,8 +422,11 @@ bool Num::parseVar(CalString& eq, std::string& message)
         // Variable name is not set
         if (tmp.empty())
         {
-            message += "Variable has no name: ";
-            message += eq;
+			CalString msg;
+            msg += "Variable has no name: ";
+            msg += eq;
+			msg.setErrorType();
+			message.add(msg);
             return false;
         }
 		pos = tmp.size();
@@ -383,7 +440,7 @@ bool Num::parseVar(CalString& eq, std::string& message)
 	}
 
 	// Shift string populate self
-	eq.left(pos);
+	eq.shiftLeft(pos);
 
 	if (eq.empty())
 	{
@@ -404,7 +461,7 @@ bool Num::parseVar(CalString& eq, std::string& message)
 	if (eq[0] == ':')
 	{
 		CalString tmp(eq);
-		tmp.left(1);
+		tmp.shiftLeft(1);
 
 		// Override tmpVar units, if available
 		if (parseUnits(tmp, message))
@@ -426,10 +483,9 @@ bool Num::parseVar(CalString& eq, std::string& message)
     if ((eq[0] == '=') && (eq.size() > 1) && (isdigit(eq[1]) || (eq[1] == '-')))
     {
         // It is an assignment, so look for numbers/units/format
-        eq.left(1);
+        eq.shiftLeft(1);
         if (parse(eq, message))
         {
-            message.clear();
             addOrUpdateVariable();
             // NOTE returning false prevents variable being added, but continue
         }
@@ -439,6 +495,23 @@ bool Num::parseVar(CalString& eq, std::string& message)
 
 	return true;
 }
+
+bool Num::parseDateTime(CalString& eq, CalcList& message)
+{
+	if ((eq.size() == 0) || (eq[1] == ':'))
+	{
+		return true;
+	}
+
+	bool done = false;
+	do
+	{
+	}
+	while (!done);
+
+	return true;
+}
+
 
 bool Num::confirm()
 {
@@ -476,7 +549,7 @@ bool Num::isVariable(const CalString& string, int& len, ConstantVars& var)
 		return false;
 
     len = tmp.size();
-	for (auto it : s_constants)
+	for (auto &it : s_constants)
 	{
 		int sz = it.varName.size();
 		if ((sz == len) && (strncmp(it.varName.c_str(), tmp.c_str(), len) == 0))
@@ -545,11 +618,11 @@ bool Num::isRad() const
 bool Num::updateFromUser()
 {
     CalString tmp;
-    std::string message;
+    CalcList message;
     bool updated = false;
     bool done = false;
 
-    // Most like when it gets here, "isUnsetVar" returned true
+    // Most likely when it gets here, "isUnsetVar" returned true
 	if (Exec::s_showUndefinedVarMsg)
 	{
 		std::cout << "Functions: variable '" << m_varName << "' is not set. Enter value to continue calculations." << std::endl;
@@ -574,7 +647,7 @@ bool Num::updateFromUser()
         }
         else
         {
-            std::cout << "Error parsing: '" << tmp << "' - errored: " << message << " - try again? (<CR> to enter 0 and continue)" << std::endl;
+            std::cout << "Error parsing: '" << tmp << "' - errored: " << message.asString() << " - try again? (<CR> to enter 0 and continue)" << std::endl;
         }
     } while (!done);
 
@@ -590,42 +663,38 @@ void Num::updateFromVariable(const ConstantVars& var)
     setAsVariable();
 }
 
-std::string Num::asString() const
+CalString Num::asString() const
 {
-	std::string s_tmp;
-	s_tmp.resize(1024);
-	const char* fmt; 
-#ifdef _MSC_VER
+	CalString tmp;
+	const char* fmt;
+	bool defaultFormat = m_format.empty();
+
 	if (isInteger())
 	{
-		fmt = m_format.empty() ? "%lld" : m_format.c_str();
-		sprintf_s(const_cast<char*>(s_tmp.data()),1024,fmt, m_lValue, m_unit.asString().c_str());
+#ifdef _MSC_VER
+		fmt = defaultFormat ? "%lld" : m_format.c_str();
+		tmp.format(fmt, m_lValue);
+#else
+		fmt = defaultFormat ? "%ld" : m_format.c_str();
+	    tmp.format(fmt, m_lValue);
+#endif
 	}
 	else
 	{
-		fmt = m_format.empty() ? "%.9f" : m_format.c_str();
-		sprintf_s(const_cast<char*>(s_tmp.data()),1024,fmt, m_dValue, m_unit.asString().c_str());
-	}
-    size_t len = strlen(s_tmp.c_str());
-    s_tmp.resize(len);
-#else
-    if (isInteger())
-    {
-		fmt = m_format.empty() ? "%ld" : m_format.c_str();
-	    sprintf(const_cast<char*>(s_tmp.data()), fmt, m_lValue);
-    }
-    else
-    {
-		fmt = m_format.empty() ? "%.9f" : m_format.c_str();
-		sprintf(const_cast<char*>(s_tmp.data()), fmt, m_dValue);
-    }
-	if (!m_unit.asString().empty())
-	{
-		strcat(const_cast<char*>(s_tmp.data()), m_unit.asString().c_str());
+		fmt = defaultFormat ? "%.9f" : m_format.c_str();
+		tmp.format(fmt, m_dValue);
+		if (defaultFormat)
+		{
+			tmp.cleanDecimal();
+		}
 	}
 
-#endif
-	return s_tmp;
+	if (!m_unit.asString().empty())
+	{
+		tmp += m_unit.asString();
+	}
+
+	return tmp;
 }
 
 // static
@@ -814,16 +883,51 @@ bool Num::convertFromRads()
 }
 
 // static
-void Num::showVariables()
+void Num::showVariables(const bool showAll)
 {
-    for (auto it : s_constants)
-    {
-        Num no(it);
-        if (no.isVar())
-        {
-            std::cout << no.varName() << "=" << no.asString() << std::endl;
-        }
-    }
+	int count{0};
+	for (auto &it : s_constants)
+	{
+		Num no(it);
+		if (no.isVar())
+		{
+			std::cout << no.varName() << "=" << no.asString() << std::endl;
+			count++;
+		}
+	}
+
+	if (showAll && (count == 0))
+	{
+		std::cout << "(none)" << std::endl;
+	}
 }
 
-
+void NumStack::list(bool all)
+{
+	if (empty())
+	{
+		if (all)
+		{
+			std::cout << "[Empty]" << std::endl;
+		}
+		else
+		{
+			std::cout << "!!! Exec::run() - No results!" << std::endl;
+		}
+		return;
+	}
+	else if (!all && (size() == 1))
+	{
+		std::cout << back().asString() << std::endl;
+	}
+	else
+	{
+		// NOTE: Origin 1
+		int i = 1;
+		for(auto &it: *this)
+		{
+			std::cout << "[" << i << "] " << it.asString() << std::endl;
+			i++;
+		}
+	}
+}

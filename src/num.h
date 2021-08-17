@@ -51,19 +51,25 @@ public:
     bool operator==(const ConstantVars& var);
 
 	/// @brief Parses string - returns remainder
-	bool parse(CalString& eq, std::string& message);
+	bool parse(CalString& eq, CalcList& message);
 
 	/// @brief Parses number from equation
-	bool parseNumber(CalString& eq, std::string& message);
+	bool parseNumber(CalString& eq, CalcList& message);
 
 	/// @brief Looks for ":" and parses number format or units 
-	bool parseFormat(CalString& eq, std::string& message);
+	bool parseFormat(CalString& eq, CalcList& message);
 
 	/// @brief Parses units after a number
-	bool parseUnits(CalString& eq, std::string& message);
+	bool parseUnits(CalString& eq, CalcList& message);
+
+	/// @brief After first set of ##:#, we can parse the rest
+	bool parseDateTime(CalString& eq, CalString& num, CalcList& message);
 
 	/// @brief Parse variables - returns -1 if not a variable
-	bool parseVar(CalString& eq, std::string& message);
+	bool parseVar(CalString& eq, CalcList& message);
+
+	/// @brief Parse Date-Time string - return true if number parsing is done (and no need for units)
+	bool parseDateTime(CalString& eq, CalcList& message);
 
 	/// @brief Converts numeric type (NUM_INTEGER to NUM_DOUBLE as opposed to units)
 	bool convertTo(const NumberType type);
@@ -106,7 +112,8 @@ public:
     // Adds itself as a variable
     bool addOrUpdateVariable();
 
-	std::string asString() const;
+	// Prints number as formatted value
+	CalString asString() const;
 
 	const CalString& varName() const { return m_varName; }
 
@@ -116,7 +123,7 @@ public:
 
 	static bool isVariable(const CalString& string, int& len, ConstantVars& var);
 
-    static void showVariables();
+    static void showVariables(const bool showAll = false);
 
 private:
 	void copyHelper(const Num& ref);
@@ -141,6 +148,8 @@ public:
 		} m_complex;
 	};
 
+	CalString m_numString;
+
 	// Number-Type - also describes which numeric descriptor is in use
 	NumberType	m_type;
 
@@ -153,8 +162,20 @@ public:
 	// Real number or varName
 	CalString m_varName;
 
+	// Automatic formatting - defaults to true (cleans up decimal/format)
+	bool      m_autoFormat;
+
 	static std::vector<ConstantVars> s_constants;
 
 };
 
-using NumStack = std::vector<Num>;
+class NumStack : public std::vector<Num>
+{
+public:
+	/// @brief Default constructor
+	NumStack() {};
+
+	/// @brief Lists the contents
+	void list(bool all = false);
+};
+

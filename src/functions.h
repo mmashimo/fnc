@@ -101,6 +101,7 @@ enum FunctionValue : uint32_t
 using Functions = struct _funcs
 {
 	std::string   str;
+	std::string   description;
 	FunctionValue type;
 	FunctionMode  mode;
 	bool          (*f)(NumStack&);
@@ -148,7 +149,7 @@ public:
 	/// @param[out] pos - string on left that best describes function
 	/// @param[out] func - Function found (populated if it returns true)
 	/// @return true if Function is found
-	static int findFunc(const CalString& str, int& pos, Functions& func);
+	static bool findFunc(const CalString& str, int& pos, Functions& func);
 
 	static bool getFunc(const FunctionValue type, Functions& func);
 
@@ -158,9 +159,18 @@ public:
 	/// @brief Default angle used for transcendental
 	static void setDefaultAngleRad(bool rad = true) { s_defaultAngle = rad?"rad":"deg";}
 
+	/// @brief Lists all the functions by type
+	static void listFunctions(const unsigned types);
+
 	/// @brief Transcendental computation default angle.
 	/// Used to check default numeric computation (as comiled, should be degrees)
 	static std::string s_defaultAngle;
+
+	/// @brief Default Output expression: Dec, Hex, Oct, F16 (16th fraction), etc.
+	static std::string s_defaultExpression;
+
+	/// @brief Default IEEE-754 Numeric Format
+	static std::string s_defaultFPP;
 
 };
 

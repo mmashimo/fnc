@@ -64,7 +64,7 @@ void Func::init()
 }
 
 
-bool Func::parse(CalString& eq, std::string& message, bool& bDone)
+bool Func::parse(CalString& eq, CalcList& message, bool& bDone)
 {
 	bDone = false;
 
@@ -78,8 +78,10 @@ bool Func::parse(CalString& eq, std::string& message, bool& bDone)
 			// For conversion, force number to be of certain unit
 			if (!parseNumber(eq, message, bDone))
 				return false;
+			if (eq.empty())
+				return true;
 		}
-		else
+		else if (!eq.empty())
 		{
 			if (!parseFunction(eq, message, bDone))
 				return false;
@@ -89,13 +91,13 @@ bool Func::parse(CalString& eq, std::string& message, bool& bDone)
 	return true;
 }
 
-bool Func::parseNumber(CalString& eq, std::string& message, bool& bDone)
+bool Func::parseNumber(CalString& eq, CalcList& message, bool& bDone)
 {
 	Num no;
 	if (!no.parse(eq, message))
 	{
 		// Error occurred
-		std::cout << "Func::parse(" << eq.c_str() << ") - Errored: " << message << std::endl;
+		std::cout << "Func::parse(" << eq.c_str() << ") - Errored: " << message.asString() << std::endl;
 		return false;
 	}
 
@@ -104,7 +106,7 @@ bool Func::parseNumber(CalString& eq, std::string& message, bool& bDone)
 	return true;
 }
 
-bool Func::parseFunction(CalString& eq, std::string& message, bool& bDone)
+bool Func::parseFunction(CalString& eq, CalcList& message, bool& bDone)
 {
 	Functions fnType;
 	int pos = -1;
@@ -127,9 +129,12 @@ bool Func::parseFunction(CalString& eq, std::string& message, bool& bDone)
 		}
         if (message.size() > 0)
         {
-            message = "Func::parseFunction: >>";
-            message += eq.c_str();
-            message += " - Could not find function";
+			CalString msg;
+            msg = "Func::parseFunction: >>";
+            msg += eq.c_str();
+            msg += " - Could not find function";
+			msg.setErrorType();
+			message.add(msg);
             return false;
         }
         // Variable was added with an assigned value - so keep going
@@ -138,7 +143,11 @@ bool Func::parseFunction(CalString& eq, std::string& message, bool& bDone)
     // So there is a function assigned
 	if (m_function.isNop() || (m_state == STATE_UNARY))
 	{
-		eq.left(pos);
+		CalString tmp(eq);
+		tmp.left(pos);
+		tmp.setFunctionType();
+		message.add(tmp);
+		eq.shiftLeft(pos);
 		eq.trimLeft();
 		if (!addFunction(fnType, eq, message, bDone))
 			return false;
@@ -159,7 +168,7 @@ bool Func::parseFunction(CalString& eq, std::string& message, bool& bDone)
 	return true;
 }
 
-void Func::addNumber(const Num& no, std::string& message, bool& bDone)
+void Func::addNumber(const Num& no, CalcList& message, bool& bDone)
 {
 	Functions func;
 	if ((m_state == STATE_BINARY) || (m_state == STATE_CONVERT))
@@ -189,7 +198,7 @@ void Func::addNumber(const Num& no, std::string& message, bool& bDone)
 	}
 }
 
-bool Func::addFunction(Functions& fnType, CalString& eq, std::string& message, bool& bDone)
+bool Func::addFunction(Functions& fnType, CalString& eq, CalcList& message, bool& bDone)
 {
 	if ((fnType.mode == MODE_BINARY) || (fnType.mode == MODE_ASSIGN))
 	{
@@ -277,23 +286,23 @@ bool Func::run(NumStack& initValue)
 {
 	bool ok = false;
 
-	for (auto it : m_prior)
+	for (auto &itr0 : m_prior)
 	{
 		// TODO:: Check if the number needs variable input
-		initValue.push_back(it);
+		initValue.push_back(itr0);
 	}
 
 	// Run subtasks first
-	for(auto it : m_subFunctions)
+	for(auto &itr1 : m_subFunctions)
 	{
-		ok = it.run(initValue);
+		ok = itr1.run(initValue);
 	}
 
 	// Push results in backward order
-	for (auto it : m_params)
+	for (auto &itr2 : m_params)
 	{
 		// TODO:: Check if the number needs variable input
-		initValue.push_back(it);
+		initValue.push_back(itr2);
 	}
 
 	ok = m_function.run(initValue);

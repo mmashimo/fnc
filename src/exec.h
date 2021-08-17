@@ -41,7 +41,7 @@ public:
 
 	bool execute(const CalString& equ);
 
-	bool parse(CalString& equ, std::string& message);
+	bool parse(CalString& equ, CalcList& message);
 
 	Num run();
 
@@ -53,21 +53,41 @@ public:
 
 	int runInteractive();
 
-	const std::string& errMessage() const { return m_message; }
+	const std::string errMessage() const { return m_message.asString(); }
 
-	void getSettings(std::string& iniPath);
+	/// @brief Process interactive commands.
+	/// @param[in,out] entry - command string - may alter to pass into exec
+	/// @return true if interactive command is processed.
+	bool processInteractive(CalString& entry);
 
-	static void printHelp(const CalString& args);
+	static void printInteractiveHelp(const CalString& args);
 
 	static bool s_showUndefinedVarMsg;
 	static bool s_quitMsgFirstTime;
 
 private:
 
-	std::string m_message;
+	// Keep records of all messages
+	CalcList m_message;
+
+	// Parsed list of numbers/functions
+	CalcList m_parsedList;
 
 	// Keeps a list of functions
 	std::vector<Func> m_functions;
 
+	// Numeric stack
 	NumStack m_stack;
+
+	// Keeps record of key entry
+	std::vector<CalString> entryHistory;
+
+	// Current index to history
+	int  m_historyIndex;
+
+	// Current index to cursor
+	int  m_cursorIndex;
+
+	/// @brief Adds string to history buffer
+	void addToHistory(const CalString& string);
 };

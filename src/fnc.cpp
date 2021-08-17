@@ -21,16 +21,18 @@
 #include <iostream>
 #include <cstring>
 
-#include "calstring.h"
-#include "exec.h"
-
-#include "fncConfig.h"
-
+// Used to install the INI parser (Note use of FNC_PROJECT to access Exec)
+#define FNC_PROJECT
 #include "iniParser.h"
 
+#include "exec.h"
+
+// Following used to set the fnc-Configuration (version, etc.)
+#include "fncConfig.h"
 static std::string s_iniPath = FNC_INI_LOCATION;
 static std::string s_iniFileName = FNC_INI_FILENAME; // "fnc.ini";
 static std::string s_iniFile;
+
 
 /// @brief Prints version number - make sure CMake is run with configuration
 void print_version(const char* arg)
@@ -71,6 +73,16 @@ void print_help_detail(const std::string& help)
 /// @brief Simple test for 'fnc' (Exec) - libraries
 int main(int argc, char** argv)
 {
+	// Use generic expression-processor
+	Exec cmd;
+
+#ifdef FNC_PROJECT
+	IniParser iniConfig(s_iniPath, s_iniFileName, true);
+
+	iniConfig.configure(cmd);
+
+	std::string iniFile = iniConfig.getFileName();
+#else
 	// Setting INI file, if will reload later
 	std::string iniFile;
 
@@ -81,13 +93,10 @@ int main(int argc, char** argv)
 	// Save to compare after argument processing
 	s_iniFile = iniFile;
 
-	// Use generic expression-processor
-	Exec cmd;
-
 	// Setup processing from INI file
 	cmd.getSettings(iniFile);
+#endif
 
-	int ar = 1;
 	if (argc == 1)
 	{
 		// Launches fnc in interactive mode
@@ -98,6 +107,7 @@ int main(int argc, char** argv)
 		return cmd.runInteractive();
 	}
 
+	int ar = 1;
 	CalString command;
 
 	// first argument is a single option set having "--" as option list
@@ -183,7 +193,11 @@ int main(int argc, char** argv)
 	// If setting file changed, reload before running
 	if (iniFile != s_iniFile)
 	{
+#ifdef FNC_PROJECT
+	iniConfig.configure(cmd);
+#else
 		cmd.getSettings(iniFile);
+#endif
 	}
 
 	std::cout << "Execute: '" << command << "'" << std::endl;

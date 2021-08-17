@@ -1,6 +1,6 @@
 /// @file
 ///
-/// @brief Class implementation for special calcuation strings.
+/// @brief Class implementation for special calculation strings.
 ///
 /// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
 ///
@@ -17,44 +17,237 @@
 ///  You should have received a copy of the GNU General Public License
 ///  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
+#include <cstring>
 #include "calstring.h"
 
 #include "func.h"	// Look for operators
 #include "num.h"    // Look for constants
 
+#include <stdarg.h>
+
+#include "numUnit.h"	// Used to check if the string is a Unit type
+
 CalString::CalString(const char* string)
 	: std::string(string == nullptr?"":string)
+	, m_type{GenericStringType}
 {
 }
 
 CalString::CalString(const std::string& string)
 	: std::string(string)
+	, m_type{GenericStringType}
 {
 }
 
 CalString::CalString(const CalString& ref)
 	: std::string(ref)
+	, m_type(ref.m_type)
 {
 }
 
 CalString& CalString::operator =(const char* ref)
 {
-	static_cast<std::string&>(*this) = ref;
+	if (c_str() != ref)
+	{
+		assign(ref);
+		// static_cast<std::string&>(*this) = ref;
+		m_type = GenericStringType;
+	}
 	return *this;
 }
 
 CalString& CalString::operator =(const std::string& ref)
 {
-	static_cast<std::string&>(*this) = ref;
+	if (c_str() != ref.c_str())
+	{
+		assign(ref);
+		// static_cast<std::string&>(*this) = ref;
+		m_type = GenericStringType;
+	}
 	return *this;
 }
 
 CalString& CalString::operator =(const CalString& ref)
 {
-	static_cast<std::string&>(*this) = static_cast<const std::string&>(ref);
+	if (this != &ref)
+	{
+		assign(static_cast<const std::string&>(ref));
+		// static_cast<std::string&>(*this) = static_cast<const std::string&>(ref);
+		m_type = ref.m_type;
+	}
 	return *this;
 }
+
+CalString& CalString::operator +=(const char ref)
+{
+	push_back(ref);
+	return *this;
+}
+
+CalString& CalString::operator +=(const char* ref)
+{
+	append(ref);
+	return *this;
+}
+
+CalString& CalString::operator +=(const std::string& ref)
+{
+	append(ref);
+	return *this;
+}
+
+CalString& CalString::operator +=(const CalString& ref)
+{
+	append(ref);
+	return *this;
+}
+
+bool CalString::operator ==(const char* ref) const
+{
+	if (c_str() == ref)
+	{
+		return true;
+	}
+
+	return strcmp(this->c_str(), ref) == 0;
+}
+
+bool CalString::operator ==(const std::string& ref) const
+{
+	if (c_str() == ref.c_str())
+	{
+		return true;
+	}
+	return strcmp(this->c_str(), ref.c_str()) == 0;
+}
+
+bool CalString::operator ==(const CalString& ref) const
+{
+	if (this == &ref)
+	{
+		return true;
+	}
+
+	// Must check string type to be exact. If type is of no concern, use 'compare'
+	return strcmp(this->c_str(), ref.c_str()) == 0;
+}
+
+bool CalString::compare(const CalString& ref, const bool caseSensitive) const
+{
+	if (caseSensitive)
+	{
+		return strcmp(this->c_str(), ref.c_str()) == 0;
+	}
+
+	return strcasecmp(this->c_str(), ref.c_str()) == 0;
+}
+
+bool CalString::compare(const CalString& ref, const int firstChars, const bool caseSensitive) const
+{
+	if (caseSensitive)
+	{
+		return strncmp(this->c_str(), ref.c_str(), firstChars) == 0;
+	}
+
+	return strncasecmp(this->c_str(), ref.c_str(), firstChars) == 0;
+}
+
+CalString& CalString::strcat(const CalString& ref)
+{
+	append(ref);
+#if 0
+	size_t count = ref.size();
+	for (int i = 0; i < count; i++)
+	{
+		push_back(ref[i]);
+	}
+#endif
+	return *this;
+}
+
+void CalString::fill(const CalString& ref, const int iterations, const bool catenate)
+{
+	if (!catenate)
+	{
+		clear();
+	}
+
+	for (int i = 0; i < iterations; i++)
+	{
+		strcat(ref);
+	}
+}
+
+int CalString::positionOf(const CalString& ref) const
+{
+	int pos{-1};
+	bool bDone{false};
+
+	const char* pstr = strstr(c_str(), ref.c_str());
+	if (pstr != nullptr)
+	{
+		pos = pstr - c_str();
+	}
+
+	return pos;
+}
+
+// Shifts itself left, discarding the contents
+CalString& CalString::shiftLeft(const int shift)
+{
+	CalString tmp = *this;
+	int end = size();
+	for(int i = 0, j = shift; j < end; i++, j++)
+	{
+		at(i) = tmp.at(j);
+	}
+	resize(end-shift);
+	return *this;
+}
+
+CalString& CalString::left(const int chars)
+{
+	CalString tmp(*this);
+
+	clear();
+
+	for(int i = 0; i < chars; i++)
+	{
+		push_back(tmp.at(i));
+	}
+	return *this;
+}
+
+int CalString::trimLeft()
+{
+	int pos = 0;
+	while (!empty() && isspace(at(0)))
+	{
+		// Strip off spaces
+		shiftLeft(1);
+		pos++;
+	}
+	return pos;
+}
+
+CalString& CalString::format(const char* fmt, ...)
+{
+	char buffer[1024];
+	va_list args;
+	va_start (args, fmt);
+
+	if (vsprintf(buffer, fmt, args) < 0)
+	{
+		perror (buffer);
+	}
+	va_end (args);
+
+	assign(buffer);
+
+	return *this;
+}
+
+// Calculation specific functions
 
 bool CalString::isNumber() const
 {
@@ -103,7 +296,7 @@ bool CalString::isFunction() const
 		else
 		{
 			// No function on left - shift one char and check
-			tmp.left(1);
+			tmp.shiftLeft(1);
 		}
 	}
 
@@ -123,31 +316,6 @@ bool CalString::isVariable() const
 	return Num::isVariable(*this, len, var);
 }
 
-
-// Shifts itself left, discarding the contents
-CalString& CalString::left(const int shift)
-{
-	CalString tmp = *this;
-	int end = size();
-	for(int i = 0, j = shift; j < end; i++, j++)
-	{
-		at(i) = tmp.at(j);
-	}
-	resize(end-shift);
-	return *this;
-}
-
-int CalString::trimLeft()
-{
-	int pos = 0;
-	while (!empty() && isspace(at(0)))
-	{
-		// Strip off spaces
-		left(1);
-		pos++;
-	}
-	return pos;
-}
 
 CalString CalString::leftNumbersOnly() const
 {
@@ -214,4 +382,154 @@ CalString CalString::leftHexOnly() const
 	return tmp;
 }
 
+CalString& CalString::cleanDecimal()
+{
+	// Do only if there is a decimal point
+	if (strchr(c_str(), '.') != nullptr)
+	{
+		int len = size();
+		bool done = false;
 
+		while(!done)
+		{
+			int c = back();
+			if ((c == '0') || (c == 0))
+			{
+				// Strip '0' from end
+				len--;
+				left(len-1);
+			}
+			else if (c == '.')
+			{
+				len--;
+				left(len-1);
+				done = true;
+			}
+			else
+			{
+				done = true;
+			}
+		}
+		return *this;
+	}
+
+	return *this;
+}
+
+bool CalString::isUnitString() const
+{
+	UnitDefs def;
+	int pos = NumUnit::findUnits(*this, def);
+	return pos >= 0;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////
+// CalcList Class
+///////////////////////////////////////////////////////////////////////
+
+/// @brief Copy Constructor
+CalcList::CalcList(const CalcList& ref)
+{
+}
+
+/// @brief Construct from strings with default separator ("")
+CalcList::CalcList(const CalString& ref)
+{
+
+}
+
+//--- Operators ---
+
+/// @brief Assignment operator
+CalcList& CalcList::operator= (const CalcList& ref)
+{
+	return *this;
+}
+
+/// @brief Assignment from breaking down strings
+CalcList& CalcList::operator= (const CalString& ref)
+{
+	push_back(ref);
+	return *this;
+}
+
+/// @brief Adds to list
+CalcList& CalcList::operator+= (const CalcList& ref)
+{
+	return *this;
+}
+
+CalcList& CalcList::operator+= (const CalString& ref)
+{
+	push_back(ref);
+	return *this;
+}
+
+
+CalcList CalcList::operator+ (const CalcList& ref)
+{
+	return *this;
+}
+
+CalcList CalcList::operator+ (const CalString& ref)
+{
+	return *this;
+}
+
+void CalcList::stringSeparator(const CalString& ref, const CalString& separator)
+{
+	// Start from 0 and look for the next occurence
+	CalString tmp = ref;
+	int len = separator.size();
+	if (len == 0 || (ref.size() == 0))
+	{
+		return;
+	}
+
+	bool bDone{false};
+
+	while(!bDone)
+	{
+		int pos = tmp.positionOf(separator);
+		if (pos > 0)
+		{
+			// Push into this list
+			CalString tmp0 = tmp.left(pos);
+			push_back(tmp0);
+			tmp.shiftLeft(pos+len);
+		}
+		else if (pos < 0)
+		{
+			push_back(tmp);
+			bDone = true;
+		}
+		else
+		{
+			// if 0, continue searching
+			tmp.shiftLeft(len);
+		}
+	}
+}
+
+int CalcList::add(const CalString& str)
+{
+	push_back(str);
+	return size();
+}
+
+std::string CalcList::asString() const
+{
+	std::string out;
+	if (!empty())
+	{
+		for (auto& itr : *this)
+		{
+			out += itr;
+			out += "\n";
+		}
+	}
+	return out;
+}

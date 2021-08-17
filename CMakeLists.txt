@@ -24,9 +24,11 @@ find_package(Boost)
 #	COMPONENTS "filesystem" "property_tree")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
+# set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
+# set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb")
 endif ()
 
 if (APPLE)
@@ -50,6 +52,7 @@ set (FNCFILE_SRCS
 	${FNC_SOURCE}/num.cpp
 	${FNC_SOURCE}/numUnit.cpp
 	${FNC_SOURCE}/iniParser.cpp
+	${FNC_SOURCE}/interactive.cpp
 )
 
 include_directories(

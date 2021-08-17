@@ -72,7 +72,7 @@ public:
 	void init();
 
 	// Returns position of the string where function stopped. -1 if entire string is used
-	bool parse(CalString& code, std::string& message, bool& bDone);
+	bool parse(CalString& code, CalcList& message, bool& bDone);
 
 	bool run(NumStack& initValue);
 
@@ -83,15 +83,15 @@ public:
 private:
 	void copyHelper(const Func& ref);
 
-	bool parseNumber(CalString& eq, std::string& message, bool& bDone);
+	bool parseNumber(CalString& eq, CalcList& message, bool& bDone);
 
-	bool parseFunction(CalString& eq, std::string& message, bool& bDone);
+	bool parseFunction(CalString& eq, CalcList& message, bool& bDone);
 
-	void addNumber(const Num& no, std::string& message, bool& bDone);
+	void addNumber(const Num& no, CalcList& message, bool& bDone);
 
-	bool addFunction(Functions& fnType, CalString& eq, std::string& message, bool& bDone);
+	bool addFunction(Functions& fnType, CalString& eq, CalcList& message, bool& bDone);
 
-	bool addSubFunctions(Functions& fnType, CalString& eq, std::string& message, bool& bDone);
+	bool addSubFunctions(Functions& fnType, CalString& eq, CalcList& message, bool& bDone);
 
 	// Data member
 	FunctionState  m_state;

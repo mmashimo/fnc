@@ -53,6 +53,7 @@ std::vector<UnitDefs> NumUnit::s_units
 	{ "cm", "cm",  UNIT_LENGTH, NUM_DOUBLE, "cm", "centimeters" },
 	{ "m", "m",   UNIT_LENGTH, NUM_DOUBLE, "m", "meters" },
 	{ "km", "km",  UNIT_LENGTH, NUM_DOUBLE, "km", "kilometers" },
+	{ "in", "\"",  UNIT_LENGTH, NUM_DOUBLE | NUM_FRACTION, "in", "inches" },
 	{ "in", "in",  UNIT_LENGTH, NUM_DOUBLE | NUM_FRACTION, "in", "inches" },
 	{ "ft", "ft", UNIT_LENGTH, NUM_DOUBLE, "ft", "feet" },
 	{ "yds", "yds", UNIT_LENGTH, NUM_DOUBLE, "yds", "yards" },
@@ -272,12 +273,14 @@ std::vector<ConversionFunction> s_conversions
 /// @brief Default constructors
 NumUnit::NumUnit()
 	: m_units{"", "", UNIT_NUMBER,NUM_DEFAULT, "", ""}
+	, m_defined{false}
 {
 	// Intensionally left blank
 }
 
-NumUnit::NumUnit(const std::string& type)
+NumUnit::NumUnit(const CalString& type)
 	: m_units{"", "", UNIT_NUMBER,NUM_DEFAULT, "", ""}
+	, m_defined{false}
 {
 	// If not found, leaves the units alone
 	findUnits(type, m_units);
@@ -335,6 +338,11 @@ bool NumUnit::isRad() const
 	return (isUnitType(UNIT_ANGLE) && compareKeyString("rad"));
 }
 
+bool NumUnit::isDefault() const
+{
+	return m_units.expectType == NUM_DEFAULT;
+}
+
 bool NumUnit::findConversion(const NumUnit& to, CalString& func)
 {
 	return findConversion(to.m_units, func);
@@ -345,7 +353,7 @@ bool NumUnit::findConversion(const UnitDefs& to, CalString& func)
 	if ((m_units.unitType != UNIT_NUMBER) && (m_units.unitType != to.unitType))
 		return false;
 
-	for (auto it : s_conversions)
+	for (auto &it : s_conversions)
 	{
 		if((it.type == to.unitType)
 			&& (strcmp(m_units.unitKey.c_str(), it.from.c_str()) == 0)
@@ -360,23 +368,44 @@ bool NumUnit::findConversion(const UnitDefs& to, CalString& func)
 
 
 // static
-int NumUnit::findUnits(const std::string& string, UnitDefs& def)
+int NumUnit::findUnits(const CalString& string, UnitDefs& def)
 {
-	int pos = -1;
 	int len = string.size();
+	int foundLen = -1;
 	if (len > 0)
 	{
-		for (auto it : s_units)
+		for (auto &it : s_units)
 		{
 			int sz = it.unitStr.size();
-			if ((sz == len) && strncmp(it.unitStr.c_str(), string.c_str(), sz) == 0)
+			if (strncmp(string.c_str(), it.unitStr.c_str(), sz) == 0)
 			{
-				def = it;
-				return sz;
+				if (sz > foundLen)
+				{
+					foundLen = sz;
+					def = it;
+				}
 			}
 		}
 	}
-	return pos;
+	return foundLen;
 }
 
+const CalString& NumUnit::keyString() const
+{
+	return m_units.unitKey;
+}
 
+const UnitType& NumUnit::unitType() const
+{
+	return m_units.unitType;
+}
+
+const NumberType& NumUnit::numberType() const
+{
+	return m_units.expectType;
+}
+
+const CalString& NumUnit::asString() const
+{
+	return m_units.displayed;
+}

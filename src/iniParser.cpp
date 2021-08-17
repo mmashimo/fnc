@@ -1,3 +1,29 @@
+/// @file
+///
+/// @brief Class implementation file for INI-Parsing Utility.
+///
+/// This class is used for generic INI parsing, but here, we added (few)
+/// functions specific to FNC project just so we can keep this somewhere safe.
+/// (NOTE: use of FNC_PROJECT - for 'fnc' project)
+///
+/// Much of the original code (written in C) has been modified for C++
+/// but modified for MS-VC from gcc and returned back to gcc. There are known
+/// issues and dissimilarities that are not fully vetted.
+///
+/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+///
+///  This program is free software: you can redistribute it and/or modify
+///  it under the terms of the GNU General Public License as published by
+///  the Free Software Foundation, either version 3 of the License, or
+///  any later version.
+///
+///  This program is distributed in the hope that it will be useful,
+///  but WITHOUT ANY WARRANTY; without even the implied warranty of
+///  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+///  GNU General Public License for more details.
+///
+///  You should have received a copy of the GNU General Public License
+///  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
 #include <exception>
@@ -27,6 +53,9 @@
 #include "functions.h"
 
 // static
+bool IniParser::m_debugErrors = false;
+
+// static
 bool IniParser::s_forceUseIni = true;
 // static
 std::string IniParser::m_defaultPath;
@@ -39,17 +68,20 @@ IniParser::IniParser(std::string& iniFile)
 	, m_changed{false}
 	, m_iniFile(iniFile)
 {
-	if (!iniFile.empty())
-	{
-		m_opened = openIni();
-	}
-	else
-	{
-		std::cout << "! INI parser cannot open empty file name" << std::endl;
-		// Cannot open empty file
-		s_forceUseIni = false;
-	}
+	openIni();
 }
+
+IniParser::IniParser(const std::string& path, const std::string& fname, const bool savePath)
+	: m_fileWasRead{false}
+	, m_opened{false}
+	, m_changed{false}
+{
+	constructFileName(m_iniFile, path, fname, savePath);
+
+	openIni();
+}
+
+
 
 IniParser::~IniParser()
 {
@@ -59,6 +91,29 @@ IniParser::~IniParser()
 		write_ini(m_iniFile, m_pt);
 	}
 }
+
+// #ifdef FNC_PROJECT
+void IniParser::configure(Exec& exec)
+{
+	// By initializing ini file, INI file will be created
+	if (exists())
+	{
+		FunctionType::s_defaultAngle = getString("Number.Angle", "deg");
+		FunctionType::s_defaultExpression = getString("Number.Expression", "Dec");
+		FunctionType::s_defaultFPP = getString("Number.FPP", "bin-64");
+
+		Exec::s_showUndefinedVarMsg = 0 != getBool("Exec.UndefinedMsg", 1);
+		Exec::s_quitMsgFirstTime = 0 != getBool("Exec.quitMsg", 1);
+	}
+	else if (IniParser::s_forceUseIni)
+	{
+		putString("Number.Angle", FunctionType::s_defaultAngle);
+		putBool("Exec.UndefinedMsg", Exec::s_showUndefinedVarMsg);
+		putBool("Exec.quitMsg", Exec::s_quitMsgFirstTime);
+	}
+
+}
+// #endif
 
 bool IniParser::exists() const
 {
@@ -249,7 +304,10 @@ int IniParser::getInt(const std::string& key_name, const int defValue)
 		}
 		catch(std::exception& e)
 		{
-			std::cout << e.what() << std::endl;
+			if (m_debugErrors)
+			{
+				std::cout << e.what() << std::endl;
+			}
 		}
 	}
 	return value;
@@ -266,7 +324,10 @@ std::string IniParser::getString(const std::string& key_name, const char* defVal
 		}
 		catch(std::exception& e)
 		{
-			std::cout << e.what() << std::endl;
+			if (m_debugErrors)
+			{
+				std::cout << e.what() << std::endl;
+			}
 		}
 	}
 	return value;
@@ -284,7 +345,10 @@ double IniParser::getFloat(const std::string& key_name, const double defValue)
 		}
 		catch(std::exception& e)
 		{
-			std::cout << e.what() << std::endl;
+			if (m_debugErrors)
+			{
+				std::cout << e.what() << std::endl;
+			}
 			value = defValue;
 		}
 	}
@@ -354,6 +418,15 @@ bool IniParser::openIni()
 	// OK if file exists, but not necessarily read
 	bool ok = false;
 
+	if (m_iniFile.empty())
+	{
+		std::cout << "! INI parser cannot open empty file name" << std::endl;
+		// Cannot open empty file
+		s_forceUseIni = false;
+		m_opened = false;
+		return false;
+	}
+
 	if(exists())
 	{
 		try
@@ -398,6 +471,10 @@ bool IniParser::openIni()
 			std::cout << std::endl;
 		}
 	}
+
+	// make sure we have opened flag set
+	m_opened = ok;
+
 	return ok;
 }
 

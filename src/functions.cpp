@@ -31,6 +31,8 @@
 
 // static
 std::string FunctionType::s_defaultAngle{"deg"};
+std::string FunctionType::s_defaultExpression{"Dec"};
+std::string FunctionType::s_defaultFPP{"bin-64"};
 
 bool nop(NumStack& params)
 {
@@ -60,6 +62,12 @@ bool add(NumStack& params)
 		// Assume integer math
 		result.m_lValue = inp0.m_lValue + inp1.m_lValue;
 	}
+
+	if (inp0.m_unit == inp1.m_unit)
+	{
+		result.m_unit = inp0.m_unit;
+	}
+
 	params.push_back(result);
 	return true;
 }
@@ -83,6 +91,11 @@ bool sub(NumStack& params)
 	{
 		// Assume integer math
 		result.m_lValue = inp0.m_lValue - inp1.m_lValue;
+	}
+
+	if (inp0.m_unit == inp1.m_unit)
+	{
+		result.m_unit = inp0.m_unit;
 	}
 
 	params.push_back(result);
@@ -109,12 +122,23 @@ bool mul(NumStack& params)
 		// Assume integer math
 		result.m_lValue = inp0.m_lValue * inp1.m_lValue;
 	}
+
+	if (inp0.m_unit.isDefault())
+	{
+		result.m_unit = inp1.m_unit;
+	}
+	else if (inp1.m_unit.isDefault())
+	{
+		result.m_unit = inp0.m_unit;
+	}
+
 	params.push_back(result);
 	return true;
 }
 
 bool div(NumStack& params)
 {
+	bool ok{true};
 	Num result;
 	Num inp1 = params.back();
 	params.pop_back();
@@ -125,8 +149,16 @@ bool div(NumStack& params)
 
 	if (result.isDouble())
 	{
-		// return results in double:
-		result.m_dValue = inp0.m_dValue / inp1.m_dValue;
+		// NOTE: MISRA recommends not to use equate on doubles, but what the heck
+		if (inp1.m_dValue != 0.)
+		{
+			// return results in double:
+			result.m_dValue = inp0.m_dValue / inp1.m_dValue;
+		}
+		else
+		{
+			ok = false;
+		}
 	}
 	else
 	{
@@ -134,16 +166,45 @@ bool div(NumStack& params)
 		int64_t rem = inp0.m_lValue % inp1.m_lValue;
 		if (rem == 0)
 		{
-			result.m_lValue = inp0.m_lValue / inp1.m_lValue;
+			if (inp1.m_lValue != 0)
+			{
+				result.m_lValue = inp0.m_lValue / inp1.m_lValue;
+			}
+			else
+			{
+				ok = false;
+			}
 		}
 		else
 		{
 			// Convert to doubles;
 			result.convertTo(NUM_DOUBLE);
-			result.m_dValue = static_cast<double>(inp0.m_lValue) / static_cast<double>(inp1.m_lValue);
+			if (inp1.m_lValue != 0.)
+			{
+				result.m_dValue = static_cast<double>(inp0.m_lValue) / static_cast<double>(inp1.m_lValue);
+			}
+			else
+			{
+				ok = false;
+			}
 		}
 	}
-	params.push_back(result);
+
+	if (ok)
+	{
+		if (inp1.m_unit.isDefault())
+		{
+			result.m_unit = inp0.m_unit;
+		}
+
+		params.push_back(result);
+	}
+	else
+	{
+		std::cout << "Attempting to divide by zero! Operation suspended." << std::endl;
+		params.push_back(inp0);
+		params.push_back(inp1);
+	}
 	return true;
 }
 
@@ -601,6 +662,18 @@ bool assign(NumStack& params)
     return true;
 }
 
+bool swapStack(NumStack& params)
+{
+    Num inp1 = params.back();
+    params.pop_back();
+	Num inp2 = params.back();
+	params.pop_back();
+	params.push_back(inp1);
+	params.push_back(inp2);
+
+	return true;
+}
+
 bool clearStack(NumStack& params)
 {
     // Remove the variable off the stack
@@ -611,80 +684,82 @@ bool clearStack(NumStack& params)
 // static
 std::vector<Functions> s_functions
 {
-	{"+",    F_ADD,  MODE_BINARY, add},
-	{"-",    F_SUB,  MODE_BINARY, sub},
-	{"*",    F_MUL,  MODE_BINARY, mul},
-	{"/",    F_DIV,  MODE_BINARY, div},
-	{"^",    F_POW,  MODE_BINARY, pow},
-	{"\\",   F_ROOT, MODE_BINARY, root}, // \x/ y or y^-x (same as power, except '- not needed)
-	{"%",    F_MOD,  MODE_BINARY, mod},
-	{"max",  F_MAX,  MODE_BINARY, max},
-	{"min",  F_MIN,  MODE_BINARY, min},
-	{"::",   F_CONV, MODE_CONVERT, convert},  // Unary, but second param looks for #-format
+	{"+",    "Add",      F_ADD,  MODE_BINARY, add},
+	{"-",    "Subtract", F_SUB,  MODE_BINARY, sub},
+	{"*",    "Multiply", F_MUL,  MODE_BINARY, mul},
+	{"/",    "Divide",   F_DIV,  MODE_BINARY, div},
+	{"^",    "Power",    F_POW,  MODE_BINARY, pow},
+	{"\\",   "Root",     F_ROOT, MODE_BINARY, root}, // \x/ y or y^-x (same as power, except '- not needed)
+	{"%",    "Modulus",  F_MOD,  MODE_BINARY, mod},
+	{"max",  "Maximum",  F_MAX,  MODE_BINARY, max},
+	{"min",  "Minimum",  F_MIN,  MODE_BINARY, min},
+	{"::",   "Convert",  F_CONV, MODE_CONVERT, convert},  // Unary, but second param looks for #-format
 
-	{";",    F_RESULT, MODE_UNARY, clearStack},  // Clear stack (one num)
-	{",",    F_RESULT, MODE_UNARY, nullptr},  // Push onto stack - not yet defined
+	{";",    "Clear Stack", F_RESULT, MODE_UNARY, clearStack},  // Clear stack (one num)
+	{",",    "Push Stack",  F_RESULT, MODE_UNARY, nullptr},  // Push onto stack - not yet defined
+	{"[-]",  "Swap Stack",  F_RESULT, MODE_UNARY, swapStack},  // Swaps stack (only if there are two)
+	{"swap", "Swap Stack",  F_RESULT, MODE_UNARY, swapStack},  // Swaps stack (only if there are two)
 
 // Unary
-	{"sqrt", F_SQRT,   MODE_UNARY, sqrt},  // Test 4-char functions before 3-chars
-	{"sqr",  F_SQRT,   MODE_UNARY, sqrt},
-	{"abs",  F_ABS,    MODE_UNARY, abs},
-	{"neg",  F_NEG,    MODE_UNARY, neg},    // Negate number
-	{"~",    F_NEG,    MODE_UNARY, neg},    // Negate number or bit-wise 1's complement if hex
-	{"inv",  F_INV,    MODE_UNARY, inv},    // 1/x
-	{"exp10", F_E10X,  MODE_UNARY, exp10},  // 10^x
-	{"exp2", F_EXP2,   MODE_UNARY, exp2},   // 2^x
-	{"exp",  F_EXP,    MODE_UNARY, exp},    // e^x
-	{"e10x", F_E10X,   MODE_UNARY, exp10},  // 10^x
-	{"e2x",  F_EXP2,   MODE_UNARY, exp2},   // e^x
-	{"log10", F_LOG,   MODE_UNARY, log10},  // log-base 10
-	{"log2", F_LOG2,   MODE_UNARY, log2},   // log-base 2
-	{"logn", F_LN,     MODE_UNARY, ln},     // Natural log - test larger char words first
-	{"log",  F_LOG,    MODE_UNARY, log10},  // log-base 10
-	{"ln",   F_LN,     MODE_UNARY, ln},     // Natural log
-	{"sin",  F_SIN,    MODE_UNARY, sin},
-	{"cos",  F_COS,    MODE_UNARY, cos},
-	{"tan",  F_TAN,    MODE_UNARY, tan},
-	{"asin", F_ASIN,   MODE_UNARY, asin},   // Returns to deg/rad as defined
-	{"acos", F_ACOS,   MODE_UNARY, acos},   // Returns to deg/rad as defined
-	{"atan", F_ATAN,   MODE_UNARY, atan},   // Returns to deg/rad as defined
-	{"sinh", F_SINH,   MODE_UNARY, sinh},
-	{"cosh", F_COSH,   MODE_UNARY, cosh},
-	{"tanh", F_TANH,   MODE_UNARY, tanh},
-	{"asinh",F_ASINH,  MODE_UNARY, asinh},
-	{"acosh",F_ACOSH,  MODE_UNARY, acosh},
-	{"atanh",F_ATANH,  MODE_UNARY, atanh},
+	{"sqrt", "Square Root", F_SQRT,   MODE_UNARY, sqrt},  // Test 4-char functions before 3-chars
+	{"sqr",  "Square Root", F_SQRT,   MODE_UNARY, sqrt},
+	{"abs",  "Absolute",    F_ABS,    MODE_UNARY, abs},
+	{"neg",  "Negate",      F_NEG,    MODE_UNARY, neg},    // Negate number
+	{"~",    "Negate",      F_NEG,    MODE_UNARY, neg},    // Negate number or bit-wise 1's complement if hex
+	{"inv",  "Invert (1/x)",F_INV,    MODE_UNARY, inv},    // 1/x
+	{"exp10","10^x",        F_E10X,  MODE_UNARY, exp10},  // 10^x
+	{"exp2", "2^x",         F_EXP2,   MODE_UNARY, exp2},   // 2^x
+	{"exp",  "e^x",         F_EXP,    MODE_UNARY, exp},    // e^x
+	{"e10x", "10^x",        F_E10X,   MODE_UNARY, exp10},  // 10^x
+	{"e2x",  "2^x",         F_EXP2,   MODE_UNARY, exp2},   // e^x
+	{"log10","Log-base10",  F_LOG,   MODE_UNARY, log10},  // log-base 10
+	{"log2", "Log-base2",   F_LOG2,   MODE_UNARY, log2},   // log-base 2
+	{"logn", "Natural Log", F_LN,     MODE_UNARY, ln},     // Natural log - test larger char words first
+	{"log",  "Log-base10",  F_LOG,    MODE_UNARY, log10},  // log-base 10
+	{"ln",   "Natural log", F_LN,     MODE_UNARY, ln},     // Natural log
+	{"sin",  "Sine",        F_SIN,    MODE_UNARY, sin},
+	{"cos",  "Cosine",      F_COS,    MODE_UNARY, cos},
+	{"tan",  "Tangent",     F_TAN,    MODE_UNARY, tan},
+	{"asin", "Arc-Sine",    F_ASIN,   MODE_UNARY, asin},   // Returns to deg/rad as defined
+	{"acos", "Arc-Cosine",  F_ACOS,   MODE_UNARY, acos},   // Returns to deg/rad as defined
+	{"atan", "Arc-Tangent", F_ATAN,   MODE_UNARY, atan},   // Returns to deg/rad as defined
+	{"sinh", "Hyperbolic Sine",   F_SINH,   MODE_UNARY, sinh},
+	{"cosh", "Hyperbolic Cosine", F_COSH,   MODE_UNARY, cosh},
+	{"tanh", "Hyperbolic Tangent",F_TANH,   MODE_UNARY, tanh},
+	{"asinh","Arc Hyperb-Sine",   F_ASINH,  MODE_UNARY, asinh},
+	{"acosh","Arc-Hyperb-Cosine", F_ACOSH,  MODE_UNARY, acosh},
+	{"atanh","Arc-Hyperb-Tangent",F_ATANH,  MODE_UNARY, atanh},
 
-	{"ceil", F_CEIL,   MODE_UNARY, ceil},
-	{"floor",F_FLOOR,  MODE_UNARY, floor},
-	{"frac", F_FRAC,   MODE_UNARY, frac},
+	{"ceil", "Ceiling",    F_CEIL,   MODE_UNARY, ceil},
+	{"floor","Floor",      F_FLOOR,  MODE_UNARY, floor},
+	{"frac", "Fractional", F_FRAC,   MODE_UNARY, frac},
 
 // Assignment
-    {"=",    F_RESULT, MODE_ASSIGN, assign},  // = 0x400, Function used to update or save variable
-    {"+=",    F_RESULT, MODE_ASSIGN, assign},  // Adds to memory
-    {"*=",    F_RESULT, MODE_ASSIGN, assign},  // Multiplies to memory
+    {"=",    "Assignment",     F_RESULT, MODE_ASSIGN, assign},  // = 0x400, Function used to update or save variable
+    {"+=",   "Sum Assign",     F_RESULT, MODE_ASSIGN, assign},  // Adds to memory
+    {"*=",   "Product Assign", F_RESULT, MODE_ASSIGN, assign},  // Multiplies to memory
 
 // Parameter
-	{"(", F_OPEN_PAREN,  MODE_PARAM, nullptr}, // = 0x200,
-	{")", F_CLOSE_PAREN, MODE_PARAM_END, nullptr},
-	{"[", F_OPEN_KEY,    MODE_PARAM, nullptr},
-	{"]", F_CLOSE_KEY,   MODE_PARAM_END, nullptr},
-	{",", F_SEP,         MODE_PARAM, nullptr},       // comma or semi separator
-	{"<[", F_VECTOR,     MODE_PARAM, nullptr},
-	{"<[[", F_MATRIX,    MODE_PARAM, nullptr},
-	{"|", F_BOUND_ABS,   MODE_PARAM, nullptr},
-	{"<@", F_SAVE_MEM_NAME,  MODE_PARAM, nullptr},
-	{">", F_CLOSE_SAVE,  MODE_PARAM_END, nullptr},
+	{"(", "Open Parenthesis",  F_OPEN_PAREN,  MODE_PARAM, nullptr}, // = 0x200,
+	{")", "Close Parenthesis", F_CLOSE_PAREN, MODE_PARAM_END, nullptr},
+	{"[", "Open Index Key",    F_OPEN_KEY,    MODE_PARAM, nullptr},
+	{"]", "Close Index Key",   F_CLOSE_KEY,   MODE_PARAM_END, nullptr},
+	{",", "Separator",         F_SEP,         MODE_PARAM, nullptr},       // comma or semi separator
+	{"<[","Open Vector",       F_VECTOR,     MODE_PARAM, nullptr},
+	{"<[[", "Open Matrix",     F_MATRIX,    MODE_PARAM, nullptr},
+	{"|", "Absolute",          F_BOUND_ABS,   MODE_PARAM, nullptr},
+	{"<@", "Save Memory Name", F_SAVE_MEM_NAME,  MODE_PARAM, nullptr},
+	{">",  "Close Save",       F_CLOSE_SAVE,  MODE_PARAM_END, nullptr},
 
 };
 
 FunctionType::FunctionType()
-	: m_function{"", F_NOP, MODE_NORMAL, nop}
+	: m_function{"", "", F_NOP, MODE_NORMAL, nop}
 {
 }
 
 FunctionType::FunctionType(const FunctionValue& type)
-	: m_function{"", F_NOP, MODE_NORMAL, nop}
+	: m_function{"", "", F_NOP, MODE_NORMAL, nop}
 {
 	Functions f;
 	if (getFunc(type, f))
@@ -762,31 +837,36 @@ void FunctionType::convertUnits(Num& result, Num& inp0, Num& inp1)
 	}
 }
 
-int FunctionType::findFunc(const CalString& str, int& pos, Functions& fx)
+bool FunctionType::findFunc(const CalString& str, int& len, Functions& fx)
 {
 	// Did not find function - assume function was not found
-	pos = -1;
-	for(auto it : s_functions)
+	bool found = false;
+
+	// Clear string length, for now
+	len = -1;
+
+	for(auto &it : s_functions)
 	{
-		int len = it.str.size();
-		if( strncmp(str.c_str(), it.str.c_str(), len) == 0)
+		int szFnc = it.str.size();
+		if( strncmp(str.c_str(), it.str.c_str(), szFnc) == 0)
 		{
 			// Finds the largest function in the list
-			if (len > pos)
+			if (szFnc > len)
 			{
 				fx = it;
-				pos = len;
+				len = szFnc;
 			}
+			found = true;
 		}
 	}
 
-	return pos != -1;
+	return found;
 }
 
 // static
 bool FunctionType::getFunc(const FunctionValue type, Functions& func)
 {
-	for(auto it : s_functions)
+	for(auto &it : s_functions)
 	{
 		if( it.type == type)
 		{
@@ -803,3 +883,38 @@ bool FunctionType::isDefaultRad()
 {
 	return s_defaultAngle == "rad";
 }
+
+// static
+void FunctionType::listFunctions(const unsigned types)
+{
+	for (auto &it : s_functions)
+	{
+		char strTmp[1024];
+		std::string fncType;
+
+		if ((types == 0)
+			|| ((types & 1) && (it.mode == MODE_UNARY))
+			|| ((types & 2) && (it.mode == MODE_BINARY))
+			|| ((types & 4) && (it.mode == MODE_PARAM)))
+		{
+			switch(it.mode)
+			{
+				case MODE_BINARY:
+					fncType = "Binary";
+					break;
+				case MODE_UNARY:
+					fncType = "Unary";
+					break;
+				case MODE_PARAM:
+					fncType = "Param";
+					break;
+				default:
+					fncType = "Mode";
+					break;
+			}
+			sprintf(strTmp,"%8s  [%6s] - %s", it.str.c_str(), fncType.c_str(), it.description.c_str());
+			std::cout << strTmp << std::endl;
+		}
+	}
+}
+
