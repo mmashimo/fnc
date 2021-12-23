@@ -43,17 +43,6 @@
 
 #include "calstring.h"
 
-class InteractiveCommand : public CalString
-{
-public:
-
-	InteractiveCommand();
-
-private:
-	uint32_t    m_state;
-
-};
-
 
 class InteractiveParser
 {

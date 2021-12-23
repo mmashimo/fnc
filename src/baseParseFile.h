@@ -1,8 +1,8 @@
 /// @file
 ///
-/// @brief Header for INI-Parsing Utility.
+/// @brief Header for Parsing File Utility Base Class
 ///
-/// This class is used for generic INI parsing, but here, we added (few)
+/// This class is used for generic file parsing util, but here, we added (few)
 /// functions specific to FNC project just so we can keep this somewhere safe.
 /// (NOTE: use of FNC_PROJECT - for 'fnc' project)
 ///
@@ -28,75 +28,48 @@
 #pragma once
 
 #include <string>
-#include "baseParseFile.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-// For special implementation of FNC, look for FNC_PROJECT
-// #ifdef FNC_PROJECT
-	#include "exec.h"
-// #endif
-
-class IniParser : public BaseParseFile
+class BaseParseFile
 {
 public:
 	/// @brief Constructor
-	IniParser(std::string& iniFile);
+	BaseParseFile(std::string& fileName);
 
 	/// @brief Construct using path and file name contents
-	IniParser(const std::string& path,
+	BaseParseFile(const std::string& path,
 			const std::string& fname,
 			const bool savePath = false);
 
 	/// @brief Destructor
-	~IniParser();
+	virtual ~BaseParseFile();
 
-	void configure(Exec& exec);
-
-#if 0
 	/// @brief Accessor to file name used for this iniParser
-	const std::string& getFileName() const { return m_iniFile; }
+	const std::string& getFileName() const { return m_fileName; }
 
 	/// @brief Checks if INI exists
 	bool exists() const;
-#endif
 
-#ifdef DEFINE_APP
-	/// @brief Applies INI file to settings.
-	/// NOTE: This was a base class where "apply" is a derived class. For
-	/// this application, this is where everything is set
-	bool apply() = 0;
+	/// @brief Is file opened?
+	/// @return true if file is opened
+	bool isFileOpened() const { return m_opened; }
 
-	/// @brief Writes current settings to INI file
-	/// NOTE: This was a base class where "write" is defined in derived classes.
-	bool write() = 0;
-#endif
+	/// @brief Checks if file hase changed
+	/// @return true if there is file change
+	bool isFileChanged() const { return m_changed; }
 
-	/// @brief Retrieve integer
-	int getInt(const std::string& key_name, const int defValue);
+	/// @brief Sets File changed flag
+	/// @param[in] changed
+	void setFileChanged(bool changed = true) { m_changed = changed; }
 
-	/// @brief Retrieves string
-	std::string getString(const std::string& key_name, const char* defValue);
+	/// @brief Was File Read?
+	/// @return true if fhile was read
+	bool wasFileRead() const { return m_fileWasRead; }
 
-	/// @brief Retrieves double
-	double getFloat(const std::string& key_name, const double defValue);
-
-	/// @brief Retrieves bool
-	bool getBool(const std::string& key_name, const bool defValue);
-
-	void putInt(const std::string& keyName, const int& value);
-	void putFloat(const std::string& keyName, const double& value);
-	void putString(const std::string& keyName, const std::string& strValue);
-	void putBool(const std::string& keyName, const bool flag);
-
-	/// @brief Opens INI file.
-	/// @return false if there was a failure
-	bool openIni();
-
-#if 0
 	/// @brief Constructs file name given path and filename
-	static void constructFileName(	std::string& iniFile,
+	static void constructFileName(	std::string& fileName,
 									const std::string& path,
 									const std::string& fname,
 									const bool savePath = false);
@@ -106,20 +79,19 @@ public:
 
 	/// @brief Checks file exists - fstat.h in come cases
 	static bool exists(const std::string& fileName);
-#endif
 
-	/// @brief Forces writing default INI file (if true) if none found
-	static bool s_forceUseIni;
+	/// @brief Returns default path name
+	static const std::string& getDefaultPathName() { return m_defaultPath; }
 
-private:
-#if 0
+
+protected:
 	/// @brief Creates paths one at a time
 	static bool createPath(const std::string& path);
-#endif
 
-	/// @brief Property Tree
-	boost::property_tree::ptree m_pt;
-#if 0
+	/// @brief Can we debug errors?
+	/// return true if we can debug Errors
+	bool canDebugErrors() const { return m_debugErrors; }
+
 	/// @brief File was created or opened
 	bool m_opened;
 
@@ -128,15 +100,19 @@ private:
 
 	/// @brief Contents changed flag
 	bool m_changed;
-#endif
 
 	/// @brief Default File name used to change
-	std::string m_iniFile;
-#if 0
+	std::string m_fileName;
+
+
+private:
+	/// @brief Property Tree
+	boost::property_tree::ptree m_pt;
+
 	/// @brief Debug input/output if errors occur
 	static bool m_debugErrors;
 
 	static std::string m_defaultPath;
 	static std::string m_defaultFile;
-#endif
+
 };

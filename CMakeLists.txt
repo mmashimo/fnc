@@ -52,6 +52,7 @@ set (FNCFILE_SRCS
 	${FNC_SOURCE}/num.cpp
 	${FNC_SOURCE}/numUnit.cpp
 	${FNC_SOURCE}/iniParser.cpp
+	${FNC_SOURCE}/baseParseFile.cpp
 	${FNC_SOURCE}/interactive.cpp
 )
 

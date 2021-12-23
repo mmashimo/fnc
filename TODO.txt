@@ -32,6 +32,7 @@ TODO:
 		[ ] - swap last "[-]" - especially for subtract/divide
 ## Numeric formatting
 	[x] - Default should be %.9f
+		[ ] - Format using %f (General with cleanup)
 	[x] - Default (clean) formatting 2.540000000 => 2.54 (using standard '%f' format)
 	[x] - Hexadecial "0x" %X (input)
 	[ ] - Numeric formatting (similar C-style):

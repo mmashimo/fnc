@@ -139,7 +139,11 @@ bool CalString::compare(const CalString& ref, const bool caseSensitive) const
 		return strcmp(this->c_str(), ref.c_str()) == 0;
 	}
 
+#ifdef WIN32
+	return _stricmp(this->c_str(), ref.c_str()) == 0;
+#else
 	return strcasecmp(this->c_str(), ref.c_str()) == 0;
+#endif
 }
 
 bool CalString::compare(const CalString& ref, const int firstChars, const bool caseSensitive) const
@@ -149,7 +153,11 @@ bool CalString::compare(const CalString& ref, const int firstChars, const bool c
 		return strncmp(this->c_str(), ref.c_str(), firstChars) == 0;
 	}
 
+#ifdef WIN32
+	return _strnicmp(this->c_str(), ref.c_str(), firstChars) == 0;
+#else
 	return strncasecmp(this->c_str(), ref.c_str(), firstChars) == 0;
+#endif
 }
 
 CalString& CalString::strcat(const CalString& ref)
@@ -236,10 +244,15 @@ CalString& CalString::format(const char* fmt, ...)
 	va_list args;
 	va_start (args, fmt);
 
+#ifdef WIN32
+	if (vsprintf_s(buffer, 1024, fmt, args) < 0)
+#else
 	if (vsprintf(buffer, fmt, args) < 0)
+#endif
 	{
 		perror (buffer);
 	}
+
 	va_end (args);
 
 	assign(buffer);

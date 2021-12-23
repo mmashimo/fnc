@@ -194,7 +194,7 @@ int main(int argc, char** argv)
 	if (iniFile != s_iniFile)
 	{
 #ifdef FNC_PROJECT
-	iniConfig.configure(cmd);
+		iniConfig.configure(cmd);
 #else
 		cmd.getSettings(iniFile);
 #endif

@@ -44,19 +44,64 @@
 
 #include "interactive.h"
 
+#ifdef WIN32
+ #include <conio.h>
+ #include <ctype.h>
+#else
  // Used for getting Linux friendly getch()
  #include <termios.h>
+#endif
+
  #include <cstdio>
 
-#define KEY_UP    91
+#ifdef WIN32
+// WIN32 SCAN Codes for Escape sequence
+#define ESCAPE_KEY  224
+// F# Keys
+#define FN_KEY 0
+
+#define KEY_UP    72
 #define KEY_DOWN  80
-#define KEY_LEFT  75
 #define KEY_RIGHT 77
+#define KEY_LEFT  75
 
-#define ESCAPE    27
+#define KEY_HOME  71
+#define KEY_END   79
+#define KEY_INS   82
+#define KEY_DEL   83
+#define KEY_PGUP  73
+#define KEY_PGDN  81
+
+#define BKSPACE   8
+
+#else
+
+// POSIX terminal Escape key
+#define ESCAPE_KEY 27
+#define SECOND_ESCAPE_SEQ '['
+
+// Key up  91
+#define KEY_UP    'A'
+// Key down 80
+#define KEY_DOWN  'B'
+// Key Right 77
+#define KEY_RIGHT 'C'
+// Key Left 75
+#define KEY_LEFT  'D'
+
+#define KEY_INS   '2'
+#define KEY_DEL   '3'
+#define KEY_HOME  'H'
+#define KEY_END   'F'
+#define KEY_PGUP  '5'
+#define KEY_PGDN  '6'
+
 #define BKSPACE   127
+#define TRAILING_TILDE 126
+#endif
 
 
+#ifndef WIN32
 static struct termios old, current;
 
 /* Initialize new terminal i/o settings */
@@ -90,22 +135,17 @@ char getch_(int echo)
 }
 
 /* Read 1 character without echo */
-char getch(void) 
+char _getch(void) 
 {
   return getch_(0);
 }
 
 /* Read 1 character with echo */
-char getche(void) 
+char _getche(void) 
 {
   return getch_(1);
 }
-
-InteractiveCommand::InteractiveCommand()
-	: m_state{0}
-{
-
-}
+#endif
 
 
 /*static*/
@@ -135,7 +175,7 @@ bool InteractiveParser::getCommandLine(CalString& cmd)
 	m_cursorIndex = cmd.size();
 
 	do {
-		c = getch();
+		c = _getch();
 
 		// Special keys
 		if ((c == '\n') || (c == '\r'))
@@ -147,9 +187,18 @@ bool InteractiveParser::getCommandLine(CalString& cmd)
 
 			done = true;
 		}
-		else if (c == ESCAPE)
+		else if (c == ESCAPE_KEY)
 		{
+#ifdef WIN32
 			processEscape();
+#else
+			// POSIX terminal uses '<ESC>[' for escape sequence. Handle second char
+			c = _getch();
+			if (c == SECOND_ESCAPE_SEQ)
+			{
+				processEscape();
+			}
+#endif
 		}
 		else if (c == BKSPACE)
 		{
@@ -210,74 +259,93 @@ void InteractiveParser::update(const char c)
 
 void InteractiveParser::processEscape()
 {
-	int c = getch();
+	int c = _getch();
 
-	// Look for cursor key
-	if (c == '[')
+	switch(c)
 	{
-		c = getch();
-		switch(c)
-		{
-			case 'A':		// Up Arrow
-				previousCommand();
-				break;
-			case 'B':		// Down Arrow
-				nextCommand();
-				break;
-			case 'C':		// Right Arrow
-				cursorRight();
-				break;
-			case 'D':		// Left Arrow
-				cursorLeft();
-				break;
-			case '2':		// INS
-				// Clear the tilde at the end
-				c = getch();
-				if (c == 126)
-				{
-					// Process INS
-					m_insertMode = !m_insertMode;
-					// TODO: Change cursor (if possible on terminal)
-				}
-				break;
-			case '3':		// DEL
-				// Clear the tilde at the end
-				c = getch();
-				if (c == 126)
-				{
-					clearCommandLine();
-				}
-				break;
-			case 'H':		// HOME
-				cursorToStart();
-				break;
-			case 'F':		// END
-				cursorToEnd();
-				break;
-			case '5':		// PageUp
-				c = getch();
-				if (c == 126)
-				{
-					// Process PageUp
-				}
-				break;
-			case '6':		// PageDn
-				c = getch();
-				if (c == 126)
-				{
-					// Process PageDn
-				}
-				break;
-			default:
-				{
-					std::string t0;
-					t0.push_back(c);
-					std::cout << "\r" << m_prompt << " Cursor key: <ESC>[" << t0 << " (" << c << ")" << std::endl;
-					std::cout << m_prompt << m_command;
-					m_cursorIndex = m_command.size();
-				}
-				break;
-		}
+		case KEY_UP:		// Up Arrow
+			previousCommand();
+			break;
+		case KEY_DOWN:		// Down Arrow
+			nextCommand();
+			break;
+		case KEY_RIGHT:		// Right Arrow
+			cursorRight();
+			break;
+		case KEY_LEFT:		// Left Arrow
+			cursorLeft();
+			break;
+		case KEY_INS:		// INS
+#ifdef WIN32
+			m_insertMode = !m_insertMode;
+#else
+			// Clear the tilde at the end
+			c = _getch();
+
+			if (c == TRAILING_TILDE)
+			{
+				// Process INS
+				m_insertMode = !m_insertMode;
+				// TODO: Change cursor (if possible on terminal)
+			}
+#endif
+			break;
+		case KEY_DEL:		// DEL
+#ifdef WIN32
+			clearCommandLine();
+#else
+			// Clear the tilde at the end
+			c = _getch();
+
+			if (c == TRAILING_TILDE)
+			{
+				clearCommandLine();
+			}
+#endif
+			break;
+		case KEY_HOME:		// HOME
+			cursorToStart();
+			break;
+		case KEY_END:		// END
+			cursorToEnd();
+			break;
+		case KEY_PGUP:		// PageUp
+#ifdef WIN32
+				// Process PageUp
+#else
+			c = _getch();
+
+			if (c == TRAILING_TILDE)
+			{
+				// Process PageUp
+			}
+#endif
+			break;
+		case KEY_PGDN:		// PageDn
+#ifdef WIN32
+				// Process PageDn
+#else
+			c = _getch();
+
+			if (c == TRAILING_TILDE)
+			{
+				// Process PageDn
+			}
+#endif
+			break;
+		default:
+			{
+				std::string t0;
+				t0.push_back(c);
+#ifdef WIN32
+				std::cout << "\r" << m_prompt << " Cursor key: <224>" << t0 << " (" << c << ") - errored" << std::endl;
+#else
+				std::cout << "\r" << m_prompt << " Cursor key: <ESC>[" << t0 << " (" << c << ") - errored" << std::endl;
+#endif
+				std::cout << m_prompt << m_command;
+				m_cursorIndex = m_command.size();
+			}
+			break;
 	}
 }
 
@@ -310,7 +378,7 @@ void InteractiveParser::processBackSpace()
 
 void InteractiveParser::previousCommand()
 {
-	if (!(m_entryHistory.empty()) && (m_historyIndex > 0) && (m_historyIndex <= m_entryHistory.size()))
+	if (!(m_entryHistory.empty()) && (m_historyIndex > 0) && ((size_t)m_historyIndex <= m_entryHistory.size()))
 	{
 		if (m_historyIndex == m_entryHistory.size())
 		{
@@ -330,7 +398,7 @@ void InteractiveParser::nextCommand()
 		bool process{true};
 		CalString cmd;
 		m_historyIndex++;
-		if (m_historyIndex >= m_entryHistory.size())
+		if ((size_t)m_historyIndex >= m_entryHistory.size())
 		{
 			if (m_previousCommand.empty())
 			{
@@ -362,7 +430,7 @@ void InteractiveParser::clearCommandLine()
 
 void InteractiveParser::cursorRight()
 {
-	if (m_cursorIndex < m_command.size())
+	if ((size_t)m_cursorIndex < m_command.size())
 	{
 		m_cursorIndex++;
 		updateCommandLine(m_command, m_cursorIndex);
@@ -405,7 +473,7 @@ void InteractiveParser::updateCommandLine(const CalString& cmd, const int cursor
 	}
 
 	std::cout << "\r" << m_prompt << cmd;
-	if (cursorIndex < cmd.size())
+	if ((size_t)cursorIndex < cmd.size())
 	{
 		// Cursor is somewhere in the middle
 		CalString tmp{cmd};

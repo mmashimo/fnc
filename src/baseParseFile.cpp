@@ -1,8 +1,8 @@
 /// @file
 ///
-/// @brief Class implementation file for INI-Parsing Utility.
+/// @brief Class implementation file for Parsing File Utility Base Class.
 ///
-/// This class is used for generic INI parsing, but here, we added (few)
+/// This class is used for generic file parsing, but here, we added (few)
 /// functions specific to FNC project just so we can keep this somewhere safe.
 /// (NOTE: use of FNC_PROJECT - for 'fnc' project)
 ///
@@ -47,92 +47,52 @@
 #include <direct.h>
 #endif
 
-#include "iniParser.h"
+#include "baseParseFile.h"
 
 #include "exec.h"
 #include "functions.h"
 
-#if 0
 // static
-bool IniParser::m_debugErrors = false;
-#endif
+bool BaseParseFile::m_debugErrors = false;
 
 // static
-bool IniParser::s_forceUseIni = true;
+std::string BaseParseFile::m_defaultPath;
 
-#if 0
 // static
-std::string IniParser::m_defaultPath;
-// static
-std::string IniParser::m_defaultFile;
-#endif
+std::string BaseParseFile::m_defaultFile;
 
-IniParser::IniParser(std::string& iniFile)
-	: BaseParseFile(iniFile)
-#if 0
+BaseParseFile::BaseParseFile(std::string& iniFile)
 	: m_fileWasRead{false}
 	, m_opened{false}
 	, m_changed{false}
-#endif
-	, m_iniFile(iniFile)
+	, m_fileName(iniFile)
 {
-	openIni();
 }
 
-IniParser::IniParser(const std::string& path, const std::string& fname, const bool savePath)
-	: BaseParseFile(path, fname, savePath)
-#if 0
+BaseParseFile::BaseParseFile(const std::string& path, const std::string& fname, const bool savePath)
 	: m_fileWasRead{false}
 	, m_opened{false}
 	, m_changed{false}
-#endif
 {
-	constructFileName(m_iniFile, path, fname, savePath);
-
-	openIni();
+	constructFileName(m_fileName, path, fname, savePath);
 }
 
 
 
-IniParser::~IniParser()
+BaseParseFile::~BaseParseFile()
 {
-	if (isFileChanged())
+	if (m_changed)
 	{
 		// Write INI file
-		write_ini(m_iniFile, m_pt);
+		write_ini(m_fileName, m_pt);
 	}
 }
 
-// #ifdef FNC_PROJECT
-void IniParser::configure(Exec& exec)
+
+bool BaseParseFile::exists() const
 {
-	// By initializing ini file, INI file will be created
-	if (exists())
-	{
-		FunctionType::s_defaultAngle = getString("Number.Angle", "deg");
-		FunctionType::s_defaultExpression = getString("Number.Expression", "Dec");
-		FunctionType::s_defaultFPP = getString("Number.FPP", "bin-64");
-
-		Exec::s_showUndefinedVarMsg = 0 != getBool("Exec.UndefinedMsg", 1);
-		Exec::s_quitMsgFirstTime = 0 != getBool("Exec.quitMsg", 1);
-	}
-	else if (IniParser::s_forceUseIni)
-	{
-		putString("Number.Angle", FunctionType::s_defaultAngle);
-		putBool("Exec.UndefinedMsg", Exec::s_showUndefinedVarMsg);
-		putBool("Exec.quitMsg", Exec::s_quitMsgFirstTime);
-	}
-
+	return exists(m_fileName);
 }
-// #endif
-
-#if 0
-bool IniParser::exists() const
-{
-	return exists(m_iniFile);
-}
-#endif
-
 
 static std::string homeDir()
 {
@@ -146,9 +106,8 @@ static std::string homeDir()
 #endif
 }
 
-#if 0
 // static
-void IniParser::constructFileName(	std::string& iniFile,
+void BaseParseFile::constructFileName(	std::string& iniFile,
 									const std::string& path,
 									const std::string& fname,
 									const bool savePath)
@@ -186,7 +145,7 @@ void IniParser::constructFileName(	std::string& iniFile,
 }
 
 // static
-bool IniParser::exists(const std::string& fileName)
+bool BaseParseFile::exists(const std::string& fileName)
 {
 	struct stat status;
 
@@ -194,7 +153,7 @@ bool IniParser::exists(const std::string& fileName)
 }
 
 // static
-bool IniParser::pathExists(const std::string& path, const bool constructPath)
+bool BaseParseFile::pathExists(const std::string& path, const bool constructPath)
 {
 	if (path.empty())
 		return true;
@@ -307,195 +266,10 @@ bool IniParser::pathExists(const std::string& path, const bool constructPath)
 
 	return itsThere;
 }
-#endif
-
-int IniParser::getInt(const std::string& key_name, const int defValue)
-{
-	int value = defValue;
-	if (wasFileRead())
-	{
-		try
-		{
-			value = m_pt.get<int>(key_name);
-		}
-		catch(std::exception& e)
-		{
-			if (canDebugErrors())
-			{
-				std::cout << e.what() << std::endl;
-			}
-		}
-	}
-	return value;
-}
-
-std::string IniParser::getString(const std::string& key_name, const char* defValue)
-{
-	std::string value = defValue;
-	if (wasFileRead())
-	{
-		try
-		{
-			value = m_pt.get<std::string>(key_name);
-		}
-		catch(std::exception& e)
-		{
-			if (canDebugErrors())
-			{
-				std::cout << e.what() << std::endl;
-			}
-		}
-	}
-	return value;
-}
 
 
-double IniParser::getFloat(const std::string& key_name, const double defValue)
-{
-	double value = defValue;
-	if (wasFileRead())
-	{
-		try
-		{
-			value = m_pt.get<double>(key_name);
-		}
-		catch(std::exception& e)
-		{
-			if (canDebugErrors())
-			{
-				std::cout << e.what() << std::endl;
-			}
-			value = defValue;
-		}
-	}
 
-	return value;
-}
-
-bool IniParser::getBool(const std::string& key_name, const bool defValue)
-{
-	bool value = defValue;
-	if (wasFileRead())
-	{
-		std::string strFlag;
-		try
-		{
-			strFlag = m_pt.get<std::string>(key_name);
-			value = strFlag == "true";
-		}
-		catch(std::exception& e)
-		{
-			std::cout << e.what() << std::endl;
-		}
-	}
-	return value;
-}
-
-
-void IniParser::putInt(const std::string& keyName, const int& value)
-{
-	if (isFileOpened())
-	{
-		m_pt.put(keyName, value);
-		setFileChanged(true);
-	}
-}
-
-void IniParser::putFloat(const std::string& keyName, const double& value)
-{
-	if (isFileOpened())
-	{
-		m_pt.put(keyName, value);
-		setFileChanged(true);
-	}
-}
-
-void IniParser::putString(const std::string& keyName, const std::string& strValue)
-{
-	if (isFileOpened())
-	{
-		m_pt.put(keyName, strValue);
-		setFileChanged(true);
-	}
-}
-
-void IniParser::putBool(const std::string& keyName, const bool flag)
-{
-	if (isFileOpened())
-	{
-		std::string strFlag = flag?"true":"false";
-		m_pt.put(keyName, strFlag);
-		setFileChanged(true);
-	}
-}
-
-bool IniParser::openIni()
-{
-	// OK if file exists, but not necessarily read
-	bool ok = false;
-
-	if (m_iniFile.empty())
-	{
-		std::cout << "! INI parser cannot open empty file name" << std::endl;
-		// Cannot open empty file
-		s_forceUseIni = false;
-		m_opened = false;
-		return false;
-	}
-
-	if(exists())
-	{
-		try
-		{
-			boost::property_tree::ini_parser::read_ini(m_iniFile, m_pt);
-			m_fileWasRead = true;
-			// Get all the configuration in INI file
-#ifdef DEFINE_APP
-			ok = apply();
-#else
-			ok = true;
-#endif
-		}
-		catch(std::exception& e)
-		{
-			std::cout << e.what() << std::endl;
-			std::cout << "Using file: '" << m_iniFile << "' -- exception caught at contructor" << std::endl;
-			m_fileWasRead = false;
-		}
-	}
-	else
-	{
-		std::cout << "INI file '" << m_iniFile << "' - not found." << std::endl;
-		m_fileWasRead = false;
-
-		if (s_forceUseIni)
-		{
-			if (pathExists(getDefaultPathName(), true))
-			{
-#ifdef DEFINE_APP
-				std::cout << " Writing default.";
-				ok = write();
-#else
-				std::cout << " Writing empty .";
-#endif
-				ok = true;
-			}
-			else
-			{
-				std::cout << "! Cannot create path '" << getDefaultPathName() << "' !" << std::endl;
-			}
-			std::cout << std::endl;
-		}
-	}
-
-	// make sure we have opened flag set
-	m_opened = ok;
-
-	return ok;
-}
-
-#if 0
-bool IniParser::createPath(const std::string& path)
+bool BaseParseFile::createPath(const std::string& path)
 {
 	bool itsThere = false;
 
@@ -601,4 +375,3 @@ bool IniParser::createPath(const std::string& path)
 	return itsThere;
 }
 
-#endif

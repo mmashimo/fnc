@@ -254,9 +254,7 @@ int Exec::runInteractive()
 	CalString cmd;
 	InteractiveParser parser;
 
-	int i{-1};
 	bool done{false};
-	int c;
 
 	while (!done)
 	{

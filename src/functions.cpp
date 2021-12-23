@@ -912,7 +912,11 @@ void FunctionType::listFunctions(const unsigned types)
 					fncType = "Mode";
 					break;
 			}
-			sprintf(strTmp,"%8s  [%6s] - %s", it.str.c_str(), fncType.c_str(), it.description.c_str());
+#ifdef WIN32
+			sprintf_s(strTmp, 1024, "%8s  [%6s] - %s", it.str.c_str(), fncType.c_str(), it.description.c_str());
+#else
+			sprintf(strTmp, "%8s  [%6s] - %s", it.str.c_str(), fncType.c_str(), it.description.c_str());
+#endif
 			std::cout << strTmp << std::endl;
 		}
 	}
