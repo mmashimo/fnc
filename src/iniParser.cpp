@@ -10,7 +10,7 @@
 /// but modified for MS-VC from gcc and returned back to gcc. There are known
 /// issues and dissimilarities that are not fully vetted.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -52,28 +52,11 @@
 #include "exec.h"
 #include "functions.h"
 
-#if 0
-// static
-bool IniParser::m_debugErrors = false;
-#endif
-
 // static
 bool IniParser::s_forceUseIni = true;
 
-#if 0
-// static
-std::string IniParser::m_defaultPath;
-// static
-std::string IniParser::m_defaultFile;
-#endif
-
 IniParser::IniParser(std::string& iniFile)
 	: BaseParseFile(iniFile)
-#if 0
-	: m_fileWasRead{false}
-	, m_opened{false}
-	, m_changed{false}
-#endif
 	, m_iniFile(iniFile)
 {
 	openIni();
@@ -81,11 +64,6 @@ IniParser::IniParser(std::string& iniFile)
 
 IniParser::IniParser(const std::string& path, const std::string& fname, const bool savePath)
 	: BaseParseFile(path, fname, savePath)
-#if 0
-	: m_fileWasRead{false}
-	, m_opened{false}
-	, m_changed{false}
-#endif
 {
 	constructFileName(m_iniFile, path, fname, savePath);
 
@@ -103,7 +81,6 @@ IniParser::~IniParser()
 	}
 }
 
-// #ifdef FNC_PROJECT
 void IniParser::configure(Exec& exec)
 {
 	// By initializing ini file, INI file will be created
@@ -124,190 +101,7 @@ void IniParser::configure(Exec& exec)
 	}
 
 }
-// #endif
 
-#if 0
-bool IniParser::exists() const
-{
-	return exists(m_iniFile);
-}
-#endif
-
-
-static std::string homeDir()
-{
-#ifdef _MSC_VER
-	size_t retSize = 1024;
-	char buf[1024];
-	errno_t retCode = getenv_s(&retSize, buf, 1024, "HOME");
-	return std::string(buf);
-#else
-	return std::string(getenv("HOME"));
-#endif
-}
-
-#if 0
-// static
-void IniParser::constructFileName(	std::string& iniFile,
-									const std::string& path,
-									const std::string& fname,
-									const bool savePath)
-{
-	std::string tmpPath = path;
-	if (path.empty())
-	{
-		iniFile = fname;
-	}
-	else if (path[0] == '~')
-	{
-		std::string tmp = path.substr(1);
-
-		iniFile = homeDir();
-		iniFile += tmp;
-		if (iniFile.back() != '/')
-			iniFile += '/';
-		tmpPath = iniFile;
-		iniFile += fname;		
-	}
-	else
-	{
-		// Path exists
-		iniFile = path;
-		if (path.back() != '/')
-			iniFile += '/';
-		tmpPath = iniFile;
-		iniFile += fname;
-	}
-	if (savePath)
-	{
-		m_defaultPath = tmpPath;
-		m_defaultFile = fname;
-	}
-}
-
-// static
-bool IniParser::exists(const std::string& fileName)
-{
-	struct stat status;
-
-	return stat(fileName.c_str(), &status) == 0;
-}
-
-// static
-bool IniParser::pathExists(const std::string& path, const bool constructPath)
-{
-	if (path.empty())
-		return true;
-
-	struct stat status;
-
-	bool itsThere = stat(path.c_str(), &status) == 0;
-
-	if (!itsThere && constructPath)
-	{
-#if 0
-		// Remove last delimiter
-#if 0
-		std::string dir = path;
-		size_t sz = dir.size();
-		if ((dir.back() == '/') || (dir.back() == '\\'))
-		{
-			dir.resize(sz-1);
-		}
-#endif
-
-#ifdef EXPERIMENTAL_FILE
-		std::stringstream dir;
-		dir << path;
-		if (!std::experimental::filesystem::exists(dir.str()))
-		{
-			std::experimental::filesystem::create_directories(dir.str());
-			itsThere = true;
-		}
-#endif
-
-#ifdef USE_CURRENT_DIR
-		std::deque<std::string> paths;
-		std::string tmp = path;
-		std::string tmp0;
-		while(!tmp.empty())
-		{
-			if (tmp[0] == '/')
-			{
-				tmp0 += '/';
-				tmp = tmp.substr(1);
-			}
-			else if (tmp[0] == '~')
-			{
-				// replace with "HOME"
-				tmp0 += getenv("HOME");
-				paths.push_back(tmp0);
-				tmp = tmp.substr(1);
-				tmp0.clear();
-			}
-			else
-			{
-				size_t pos = tmp.find_first_of('/');
-				if (pos == std::string::npos)
-				{
-					// No more delimiter found
-					paths.push_back(tmp);
-				}
-				else
-				{
-					tmp0 += tmp.substr(0,pos);
-					paths.push_back(tmp0);
-					tmp0.clear();			
-					tmp = tmp.substr(pos);
-				}
-			}
-		}
-		tmp.clear();
-		do {
-			tmp += paths.front();
-			paths.pop_front();
-		 	if (stat(tmp.c_str(), &status) == 0)
-			 {
-				 // Skip
-				 std::cout << "'" << tmp << "' - exists, moving on" << std::endl;
-			 }
-			 else
-			 {
-				 int check = mkdir(tmp.c_str(), 0777);
-				 if (check < 0)
-				 {
-					 std::cout << "!Error creating '" << tmp << "' - returned " << check << std::endl;
-					 itsThere = false;
-					 break;
-				 }
-				 else
-				 {
-					 std::cout << "Created '" << tmp << "' directory" << std::endl;
-					 itsThere = true;
-				 }
-			 }
-		} while (!paths.empty());
-
-#endif
-
-#if 0
-		// Create path - NOTE: This does not make recursive directories, so beware
-		// int check = mkdir(path.c_str(), 0777);
-		int check = mkdir("../../.fnc", 0777);
-		if ( check == 0)
-		{
-			// Path created - reopen INI file
-			itsThere = true;
-		}
-#endif
-
-#endif
-		itsThere = createPath(path);
-	}
-
-	return itsThere;
-}
-#endif
 
 int IniParser::getInt(const std::string& key_name, const int defValue)
 {
@@ -494,111 +288,3 @@ bool IniParser::openIni()
 	return ok;
 }
 
-#if 0
-bool IniParser::createPath(const std::string& path)
-{
-	bool itsThere = false;
-
-#if 0
-	// Remove last delimiter
-	std::string dir = path;
-	size_t sz = dir.size();
-	if ((dir.back() == '/') || (dir.back() == '\\'))
-	{
-		dir.resize(sz-1);
-	}
-#endif
-
-#ifdef EXPERIMENTAL_FILE
-	std::stringstream dir;
-	dir << path;
-	if (!std::experimental::filesystem::exists(dir.str()))
-	{
-		std::experimental::filesystem::create_directories(dir.str());
-		itsThere = true;
-	}
-#endif
-
-#ifdef USE_CURRENT_DIR
-	struct stat status;
-	std::deque<std::string> paths;
-	std::string tmp = path;
-	std::string tmp0;
-	while(!tmp.empty())
-	{
-		if (tmp[0] == '/')
-		{
-			tmp0 += '/';
-			tmp = tmp.substr(1);
-		}
-		else if (tmp[0] == '~')
-		{
-			// replace with "HOME"
-			tmp0 += homeDir();
-			paths.push_back(tmp0);
-			tmp = tmp.substr(1);
-			tmp0.clear();
-		}
-		else
-		{
-			size_t pos = tmp.find_first_of('/');
-			if (pos == std::string::npos)
-			{
-				// No more delimiter found
-				paths.push_back(tmp);
-			}
-			else
-			{
-				tmp0 += tmp.substr(0,pos);
-				paths.push_back(tmp0);
-				tmp0.clear();			
-				tmp = tmp.substr(pos);
-			}
-		}
-	}
-	tmp.clear();
-	do {
-		tmp += paths.front();
-		paths.pop_front();
-		if (stat(tmp.c_str(), &status) == 0)
-			{
-				// Skip
-				std::cout << "'" << tmp << "' - exists, moving on" << std::endl;
-			}
-			else
-			{
-#ifdef _MSC_VER
-				int check = _mkdir(tmp.c_str());
-#else
-				int check = mkdir(tmp.c_str(), 0777);
-#endif
-				if (check < 0)
-				{
-					std::cout << "!Error creating '" << tmp << "' - returned " << check << std::endl;
-					itsThere = false;
-					break;
-				}
-				else
-				{
-					std::cout << "Created '" << tmp << "' directory" << std::endl;
-					itsThere = true;
-				}
-			}
-	} while (!paths.empty());
-
-#endif
-
-#if 0
-		// Create path - NOTE: This does not make recursive directories, so beware
-		// int check = mkdir(path.c_str(), 0777);
-		int check = mkdir("../../.fnc", 0777);
-		if ( check == 0)
-		{
-			// Path created - reopen INI file
-			itsThere = true;
-		}
-#endif
-	return itsThere;
-}
-
-#endif

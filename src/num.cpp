@@ -2,7 +2,7 @@
 ///
 /// @brief class implementation for Num - Number class
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -131,7 +131,8 @@ bool Num::parse(CalString& eq, CalcList& message)
 
 	while(!bDone && !eq.empty())
 	{
-		if(eq.isNumber())
+		// First pass number is a number
+		if(eq.isNumber() && (m_type == NUM_DEFAULT))
 		{
 			if (!parseNumber(eq, message))
 			{
@@ -158,6 +159,8 @@ bool Num::parse(CalString& eq, CalcList& message)
 			}
 			else
 			{
+				eq.shiftLeft(1);
+				message.back() += ":";
 				// If units were not found, then stop searching
 				if(!parseUnits(eq, message))
 					bDone = true;
@@ -191,6 +194,7 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 		return false;
 	}
 
+	bool numStringSet{false};
 	int pos = eq.size();
 	int i = 0;
 	int decPt = 0;
@@ -204,6 +208,7 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 		m_numString.push_back('-');
 		eq.shiftLeft(1);
 		--pos;
+		numStringSet = true;
 	}
 	// Check for hexidecimal number
 	else if ((pos > 2) && (eq[0] == '0') && (eq[1]=='x'))
@@ -232,6 +237,9 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 		}
 		// Default formatting
 		m_format = "0x%X";
+
+		numStringSet = true;
+
 		return true;
 	}
 
@@ -243,6 +251,7 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 			eq.shiftLeft(1);
 			pos--;
 			i++;
+			numStringSet = true;
 		}
 		else if ((eq[0] == '.') && (decPt == 0))
 		{
@@ -256,6 +265,7 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 			pos--;
 			i++;
 			decPt++;
+			numStringSet = true;
 		}
 		else if (eq[0] == ':')
 		{
@@ -277,7 +287,11 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 				// parse number format
 				parseFormat(eq, message);
 			}
-
+			else
+			{
+				// Get the units - use 'parse' to put variable
+				done = true;
+			}
 		}
 		else if (i == 0)
 		{
@@ -295,7 +309,7 @@ bool Num::parseNumber(CalString& eq, CalcList& message)
 		}
 	}
 
-	if (m_numString.empty())
+	if (m_numString.empty() && !numStringSet)
 		return false;
 
 	m_numString.setNumberType();
@@ -329,6 +343,8 @@ bool Num::parseUnits(CalString& eq, CalcList& message)
 	{
 		CalString tmp(eq);
 		tmp.left(findPos);
+		m_varName += ":";
+		m_varName += tmp;
 
 		if (message.back().isNumberType())
 		{
@@ -486,7 +502,7 @@ bool Num::parseVar(CalString& eq, CalcList& message)
         eq.shiftLeft(1);
         if (parse(eq, message))
         {
-            addOrUpdateVariable();
+            addOrUpdateVariable(message);
             // NOTE returning false prevents variable being added, but continue
         }
         // If there are issues, we will have error msgs
@@ -513,7 +529,7 @@ bool Num::parseDateTime(CalString& eq, CalcList& message)
 }
 
 
-bool Num::confirm()
+bool Num::confirm(CalcList& message)
 {
     // For now, Check if we have a variable and confirm variable has data in it
     if (isConstant() || !isVar())
@@ -540,10 +556,10 @@ bool Num::confirm()
 
 
 //static
-bool Num::isVariable(const CalString& string, int& len, ConstantVars& var)
+bool Num::isVariable(const CalString& str, int& len, ConstantVars& var)
 {
 	int i = 0;
-	CalString tmp = string.leftAlphaOnly();
+	CalString tmp = str.leftAlphaOnly();
 
 	if (tmp.empty())
 		return false;
@@ -560,6 +576,21 @@ bool Num::isVariable(const CalString& string, int& len, ConstantVars& var)
 	}
 	return false;
 }
+
+
+bool Num::isVariable(const std::string& str, Num& out)
+{
+	CalString tmp(str);
+	ConstantVars var;
+	int len{0};  // throw away variable
+	bool found = isVariable(tmp, len, var);
+	if (found)
+	{
+		out.updateFromVariable(var);
+	}
+	return found;
+}
+
 
 bool Num::setNumber(const Num& value)
 {
@@ -589,6 +620,13 @@ bool Num::setNumber(const Num& value)
         }
     }
 	return true;
+}
+
+Num& Num::setUnit(const NumUnit& unit)
+{
+	// Blindly set the unit type (for now)
+	m_unit = unit;
+	return *this;
 }
 
 void Num::setAsVariable(const bool unset)
@@ -643,7 +681,7 @@ bool Num::updateFromUser()
             done = true;
             updated = true;
             // Add to variable list
-            addOrUpdateVariable();
+            addOrUpdateVariable(message);
         }
         else
         {
@@ -734,7 +772,7 @@ bool Num::isNumber(const CalString& string)
 }
 
 
-bool Num::addOrUpdateVariable()
+bool Num::addOrUpdateVariable(CalcList& message)
 {
     ConstantVars var;
     int len = m_varName.size();
@@ -757,7 +795,11 @@ bool Num::addOrUpdateVariable()
         {
 			if (it.num_type & NUM_CONSTS)
 			{
-				std::cout << "!!! Attempting to update a constant '" << m_varName << "'" << std::endl;
+				std::string msg{"!!! Attempting to update a constant '"};
+				msg += m_varName;
+				msg += "'";
+				message.push_back(msg);
+				std::cout << msg << std::endl;
 				return false;
 			}
 			else if (!(*this == it))
@@ -815,8 +857,7 @@ bool Num::convertUnitTo(Num& to)
 		return false;
 	}
 
-	Exec ex;
-	ex.inputParseAndRun(*this, func);
+	Exec::inputParseAndRun(*this, func);
 
 	return true;
 }
@@ -849,8 +890,7 @@ bool Num::convertToRads()
 		// We cannot modify unit - especially if used
 		convertTo(NUM_DOUBLE);
 
-		Exec ex;
-		ex.inputParseAndRun(*this, func);
+		Exec::inputParseAndRun(*this, func);
 
 		return true;
 	}
@@ -874,8 +914,7 @@ bool Num::convertFromRads()
 		// We cannot modify unit
 		convertTo(NUM_DOUBLE);
 
-		Exec ex;
-		ex.inputParseAndRun(*this, func);
+		Exec::inputParseAndRun(*this, func);
 
 		return true;
 	}
@@ -889,7 +928,7 @@ void Num::showVariables(const bool showAll)
 	for (auto &it : s_constants)
 	{
 		Num no(it);
-		if (no.isVar())
+		if (no.isVar() || showAll)
 		{
 			std::cout << no.varName() << "=" << no.asString() << std::endl;
 			count++;

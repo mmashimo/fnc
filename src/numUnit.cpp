@@ -2,7 +2,7 @@
 ///
 /// @brief Implements Unit-Conversion and Unit defintions lists.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 //----------------------------------------------------------
 
 /// @brief Unit-definition list
-std::vector<UnitDefs> NumUnit::s_units
+UnitDefList s_units
 {
 // UNIT_ANGLE,
 	{ "deg", "D", UNIT_ANGLE, NUM_DOUBLE , "deg", "degrees"},
@@ -55,6 +55,7 @@ std::vector<UnitDefs> NumUnit::s_units
 	{ "km", "km",  UNIT_LENGTH, NUM_DOUBLE, "km", "kilometers" },
 	{ "in", "\"",  UNIT_LENGTH, NUM_DOUBLE | NUM_FRACTION, "in", "inches" },
 	{ "in", "in",  UNIT_LENGTH, NUM_DOUBLE | NUM_FRACTION, "in", "inches" },
+	{ "ft", "'", UNIT_LENGTH, NUM_DOUBLE, "ft", "feet" },
 	{ "ft", "ft", UNIT_LENGTH, NUM_DOUBLE, "ft", "feet" },
 	{ "yds", "yds", UNIT_LENGTH, NUM_DOUBLE, "yds", "yards" },
 	{ "mi", "mi", UNIT_LENGTH, NUM_DOUBLE, "mi", "miles" },
@@ -148,8 +149,8 @@ std::vector<UnitDefs> NumUnit::s_units
 	{ "sec", "sec", UNIT_TIME, NUM_TIME, "sec", "Seconds" },
 	{ "min", "min", UNIT_TIME, NUM_TIME, "min", "Minutes" },
 	{ "hr", "hr", UNIT_TIME, NUM_TIME, "hrs", "Hours" },
-	{ "am", "am", UNIT_TIME, NUM_TIME, "am", "AM" },
-	{ "pm", "pm", UNIT_TIME, NUM_TIME, "pm", "PM" },
+	{ "am", "am", UNIT_TIME, NUM_TIME, "am", "AM 12hr mode" },
+	{ "pm", "pm", UNIT_TIME, NUM_TIME, "pm", "PM 12hr mode" },
 // UNIT_DATETIME,       // Expresses Date Date/Time
 	{ "days", "dy", UNIT_TIME, NUM_TIME, "days", "Days" },
 	{ "mon", "mon", UNIT_TIME, NUM_TIME, "mon", "Months" },
@@ -183,9 +184,12 @@ std::vector<ConversionFunction> s_conversions
 //	{UNIT_FRACTION,       // Unit conversion for Number as fractions
 //	{UNIT_COMPLEX,        // Unit conversion for Complex number
 //	{UNIT_MEMORY,         // Used for conversion of digital storage
-	{UNIT_TEMPERATURE, "C",   "F", "*9/5+32."},
-	{UNIT_TEMPERATURE, "F",   "C", "- 32.*5/9"},
 
+	// Temperature Conversion
+	{UNIT_TEMPERATURE, "C",   "F", "*9/5+32F"},
+	{UNIT_TEMPERATURE, "F",   "C", "- 32.*5/9C"},
+
+	// Length Conversion
 	{UNIT_LENGTH,      "mm",  "cm", "/10."},
 	{UNIT_LENGTH,      "mm",  "m", "/1000."},
 	{UNIT_LENGTH,      "mm",  "km", "/1000000."},
@@ -323,16 +327,6 @@ bool NumUnit::operator!=(const std::string& unitKey)
 	return !compareKeyString(unitKey);
 }
 
-bool NumUnit::compareKeyString(const std::string& strUnit) const
-{
-	return m_units.unitKey == strUnit;
-}
-
-bool NumUnit::isUnitType(const UnitType& unitType) const
-{
-	return m_units.unitType == unitType;
-}
-
 bool NumUnit::isRad() const
 {
 	return (isUnitType(UNIT_ANGLE) && compareKeyString("rad"));
@@ -390,22 +384,3 @@ int NumUnit::findUnits(const CalString& string, UnitDefs& def)
 	return foundLen;
 }
 
-const CalString& NumUnit::keyString() const
-{
-	return m_units.unitKey;
-}
-
-const UnitType& NumUnit::unitType() const
-{
-	return m_units.unitType;
-}
-
-const NumberType& NumUnit::numberType() const
-{
-	return m_units.expectType;
-}
-
-const CalString& NumUnit::asString() const
-{
-	return m_units.displayed;
-}

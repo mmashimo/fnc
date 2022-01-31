@@ -51,6 +51,7 @@ BUILD on Linux:
 - cd build
 - cmake ..
 - make
+- make test
 
 BUILD on Windows (MSVC solution)
 - md vc
@@ -66,9 +67,13 @@ BUILD on Windows (MSVC solution)
 Generally, the script works in the following manner:
 
 - Parsing happens from left to right. Case is important.
-- Numberic or '-' followed by numerics are 'numbers'.
-	- A number can have units immediately after the number or by adding ':' and units the number (ex. _25F_ is the same as _25:F_ for degrees Fahrenheit). Units are alpha-numeric (but starts with an alphabet).
-	- Number formatting is similar to Units, but is always enclosed in single quotes. It is important to make sure there is an ending quote unless using escape (\') for feet or minutes,
+- _fnc_ is stack oriented, but the first set of operations can be either function or stack. Numbers and operations can be placed together (ex: _-4.5-3.2_). To be safe, use spaces to make it easier to read, especially when adding more functions to the equation.
+- Numerics or numbers with specifics are the basis of this app:
+	- Calculations are usually done as 'double'. _fnc_ will choose 'int32_t' or 'int64_t' as needed. Integer divide will turn into double if there are remainders.
+    - Negative numbers must start with '-' and followed by 'numbers'. (Not to confuse intepreter with 'subtraction')
+	- A number can have units immediately after the number or by adding ':' and units the number (ex. _25F_ is the same as _25:F_ for degrees Fahrenheit). Units are alpha-numeric but must start with an alphabet.
+	- Default angle expression is 'radians'. Use the '.fnc' configuration to set default to 'degrees'. Or use units.
+	- Number formatting (C-style format, ex. '$%6.2' used for US dollar denominations) can be added to end of number or format and is always enclosed in single quotes. It is important to make sure there is an ending quote unless using escape (\') for feet or minutes.
 	for example. 5'6" (5-feet, 6-inches) is good enough. 5 feet cannot use 5:' otherwise parsing
 	error will ensue.
 	- Time string (TBD) is differentiated with units/format by ##:##. Numericall, saved in the

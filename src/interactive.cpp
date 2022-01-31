@@ -24,7 +24,7 @@
 /// only. Others have been ripped out. VC (cl) version has yet to be fully
 /// fixed.
 ///
-/// @copyright 2002-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2002-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by

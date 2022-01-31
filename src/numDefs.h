@@ -2,7 +2,7 @@
 ///
 /// @brief Header for Number and Unit Definitions
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -23,16 +23,17 @@
 
 using NumberType = uint32_t;
 
-constexpr NumberType NUM_DEFAULT  {0};    // un-initialized state
-constexpr NumberType NUM_DOUBLE   {0x100}; // General use
-constexpr NumberType NUM_INTEGER  {0x200}; // Integer 64 use (NOTE: use of radix last byte)
-constexpr NumberType NUM_COMPLEX  {0x400}; // Real/imaginery components
-constexpr NumberType NUM_INT_PARTS{0x800}; // Used to describe numbers with split integers or unsigned hexidecimal (radix last byte)
+constexpr NumberType NUM_DEFAULT  {0};      // un-initialized state
+constexpr NumberType NUM_DOUBLE   {0x100};  // General use
+constexpr NumberType NUM_INTEGER  {0x200};  // Integer 64 use (NOTE: use of radix last byte)
+constexpr NumberType NUM_COMPLEX  {0x400};  // Real/imaginery components (both doubles)
+constexpr NumberType NUM_INT_PARTS{0x800};  // Used to describe numbers with split integers or unsigned hexidecimal (radix last byte)
 constexpr NumberType NUM_FRACTION {0x1000}; // Double described as fraction
-constexpr NumberType NUM_TIME     {0x2000};
-constexpr NumberType NUM_CONSTS   {0x4000}; // Cannot change (read-only), must be set
+constexpr NumberType NUM_TIME     {0x2000}; // Also degrees expressed in float or integer
+constexpr NumberType NUM_DATE     {0x4000};
 constexpr NumberType NUM_VAR      {0x8000}; // Can change - bitwise Number type, also
 constexpr NumberType NUM_VAR_UNSET{0x10000}; // Variable value is undefined
+constexpr NumberType NUM_CONSTS   {0x20000}; // Cannot change (read-only), must be set
 
 enum UnitType : uint16_t
 {
@@ -74,19 +75,11 @@ enum UnitType : uint16_t
 /// Used to construct s_units
 typedef struct _unit_defs
 {
-#if 0
-	std::string unitKey;    // Used for Unit conversion
-	std::string unitStr;	// Parsed unit
-	UnitType    unitType;
-	NumberType  expectType; // Expected number type, if any
-	std::string displayed;
-	std::string description;
-#endif
-	CalString  unitKey;    // Used for Unit conversion
-	CalString  unitStr;	// Parsed unit
+	CalString  unitKey;     // Used for Unit conversion Key (for conversion)
+	CalString  unitStr;	    // Parsed unit
 	UnitType   unitType;
-	NumberType expectType; // Expected number type, if any
-	CalString  displayed;
+	NumberType expectType;  // Expected number type, if any
+	CalString  displayed;   // When output to screen, used to output - can use C-format
 	CalString  description;
 } UnitDefs;
 
@@ -94,18 +87,9 @@ typedef struct _unit_defs
 /// Used to construct Constants and Variables
 typedef struct _constantVars
 {
-#if 0
-	std::string varName;
-	double      value;
-	NumberType  num_type;
-	UnitType    unit_type;
-	std::string units;
-#endif
 	CalString   varName;
 	double      value;
 	NumberType  num_type;
 	UnitType    unit_type;
 	CalString   units;
-
-
 } ConstantVars;

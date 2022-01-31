@@ -10,7 +10,7 @@
 /// but modified for MS-VC from gcc and returned back to gcc. There are known
 /// issues and dissimilarities that are not fully vetted.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -94,18 +94,6 @@ bool BaseParseFile::exists() const
 	return exists(m_fileName);
 }
 
-static std::string homeDir()
-{
-#ifdef _MSC_VER
-	size_t retSize = 1024;
-	char buf[1024];
-	errno_t retCode = getenv_s(&retSize, buf, 1024, "HOME");
-	return std::string(buf);
-#else
-	return std::string(getenv("HOME"));
-#endif
-}
-
 // static
 void BaseParseFile::constructFileName(	std::string& iniFile,
 									const std::string& path,
@@ -121,7 +109,7 @@ void BaseParseFile::constructFileName(	std::string& iniFile,
 	{
 		std::string tmp = path.substr(1);
 
-		iniFile = homeDir();
+		homeDir(iniFile);
 		iniFile += tmp;
 		if (iniFile.back() != '/')
 			iniFile += '/';
@@ -308,7 +296,9 @@ bool BaseParseFile::createPath(const std::string& path)
 		else if (tmp[0] == '~')
 		{
 			// replace with "HOME"
-			tmp0 += homeDir();
+			std::string dirStr;
+			homeDir(dirStr);
+			tmp0 += dirStr;
 			paths.push_back(tmp0);
 			tmp = tmp.substr(1);
 			tmp0.clear();
@@ -375,3 +365,30 @@ bool BaseParseFile::createPath(const std::string& path)
 	return itsThere;
 }
 
+
+bool BaseParseFile::homeDir(std::string& dir)
+{
+#ifdef _MSC_VER
+	size_t retSize = 1024;
+	char buf[1024];
+	errno_t retCode = getenv_s(&retSize, buf, 1024, "HOME");
+	return std::string(buf);
+#else
+	dir = getenv("HOME");
+	return true;
+#endif
+}
+
+#if 0
+static std::string homeDir()
+{
+#ifdef _MSC_VER
+	size_t retSize = 1024;
+	char buf[1024];
+	errno_t retCode = getenv_s(&retSize, buf, 1024, "HOME");
+	return std::string(buf);
+#else
+	return std::string(getenv("HOME"));
+#endif
+}
+#endif

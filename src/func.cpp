@@ -2,7 +2,7 @@
 ///
 /// @brief class implementation for Func - function and parameter handling.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -110,7 +110,11 @@ bool Func::parseFunction(CalString& eq, CalcList& message, bool& bDone)
 {
 	Functions fnType;
 	int pos = -1;
-	if(!FunctionType::findFunc(eq, pos, fnType))
+	if(FunctionType::findFunc(eq, pos, fnType))
+	{
+		// Make sure our current function is NOT set
+	}
+	else
 	{
 		// Function not found - possibly constant or variable
 		if (eq.isNumber())
@@ -127,7 +131,7 @@ bool Func::parseFunction(CalString& eq, CalcList& message, bool& bDone)
 			addNumber(no, message, bDone);
 			return true;
 		}
-        if (message.size() > 0)
+        if (no.numString().empty() || no.varName().empty())
         {
 			CalString msg;
             msg = "Func::parseFunction: >>";
@@ -140,7 +144,7 @@ bool Func::parseFunction(CalString& eq, CalcList& message, bool& bDone)
         // Variable was added with an assigned value - so keep going
         return true;
 	}
-    // So there is a function assigned
+    // So there is a function assigned, but is this the first or the function at unary
 	if (m_function.isNop() || (m_state == STATE_UNARY))
 	{
 		CalString tmp(eq);
@@ -282,7 +286,7 @@ void Func::pushPrior(const Num& arg)
 }
 
 
-bool Func::run(NumStack& initValue)
+bool Func::run(NumStack& initValue, CalcList& message)
 {
 	bool ok = false;
 
@@ -295,7 +299,7 @@ bool Func::run(NumStack& initValue)
 	// Run subtasks first
 	for(auto &itr1 : m_subFunctions)
 	{
-		ok = itr1.run(initValue);
+		ok = itr1.run(initValue, message);
 	}
 
 	// Push results in backward order
@@ -305,7 +309,7 @@ bool Func::run(NumStack& initValue)
 		initValue.push_back(itr2);
 	}
 
-	ok = m_function.run(initValue);
+	ok = m_function.run(initValue, message);
 
 	return true;
 }

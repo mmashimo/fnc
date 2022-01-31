@@ -5,7 +5,7 @@
 /// FunctionType is a generic function "type" class. Actual functions are
 /// handled in direct calls to "C" operations, not bound by class definitions.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@
 #include <stddef.h>
 #include <string>
 #include "num.h"
+
+#include "calstring.h"
+#include "calclist.h"
 
 enum FunctionMode : uint32_t
 {
@@ -104,7 +107,7 @@ using Functions = struct _funcs
 	std::string   description;
 	FunctionValue type;
 	FunctionMode  mode;
-	bool          (*f)(NumStack&);
+	bool          (*f)(NumStack&, CalcList&);
 };
 
 
@@ -139,7 +142,7 @@ public:
 	bool isNop() const { return m_function.type == F_NOP; }
 
 	/// @brief Runs function
-	bool run(NumStack& params);
+	bool run(NumStack& params, CalcList& message);
 
 	/// @brief Converts units of Binary function as required by Mode
 	static void convertUnits(Num& result, Num& inp0, Num& inp1);

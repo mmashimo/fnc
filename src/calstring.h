@@ -5,7 +5,7 @@
 /// This class overrides standard string class and manipulates numbers,
 /// variables and functions. Its main function is to process incoming strings.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include "xstring.h"
 
 enum StringType
 {
@@ -36,13 +37,17 @@ enum StringType
 	ErroredString       // String used for expressing an error message
 };
 
-class CalString : public std::string
+class CalString : public XString
 {
 public:
 	// Default constructor
 	CalString(const char* string = nullptr);
 	CalString(const std::string& string);
+	CalString(const XString& ref);
 	CalString(const CalString& ref);
+
+	// Destructor
+	// virtual ~CalString();
 
 	CalString& operator =(const char* ref);
 	CalString& operator =(const std::string& ref);
@@ -60,37 +65,6 @@ public:
 	bool operator !=(const char* ref) const        { return !(*this == ref); }
 	bool operator !=(const std::string& ref) const { return !(*this == ref); }
 	bool operator !=(const CalString& ref) const   { return !(*this == ref); }
-
-	bool compare(const CalString& ref, const bool caseSensitive = true) const;
-	bool compare(const CalString& ref, const int firstChars, const bool caseSensitive = true) const;
-
-	/// @brief Concatenates reference string to itself (same as append) - similar to cstring
-	CalString& strcat(const CalString& ref);
-
-	/// @brief Finds the position of the reference string.
-	/// @param[in] ref - reference string to find
-	/// @returns -1 (or negative number) if string not found
-	int positionOf(const CalString& ref) const;
-
-	/// @brief fills entire string with iteration of the another string
-	void fill(const CalString& ref, const int iterations, const bool catenate = false);
-
-	/// @brief Shifts itself left, discarding the contents
-	/// @param[in] shift - number of characters to shift
-	/// @return itself with characters shifted
-	CalString& shiftLeft(const int shift = 1);
-
-	/// @brief Truncates string (on right) keeping chars-length to the left.
-	/// @param[in] - number of characters to keep on the left
-	/// @return itself only with the left characters
-	CalString& left(const int chars);
-
-	/// @brief Removes whitespace at left of string. Returns # fo spaces stripped
-	/// @return number of characters stripped
-	int trimLeft();
-
-	/// @brief C-formats string.
-	CalString& format(const char* fmt, ...);
 
 	//------------- Calculation specific methods -----------------------
 	bool isNumber() const;
@@ -140,46 +114,6 @@ public:
 private:
 	/// @brief Keeps track of string type
 	StringType  m_type;
-
-};
-
-// List of parsed strings
-class CalcList : public std::vector<CalString>
-{
-public:
-	/// @brief Default Contructor
-	CalcList() {};
-
-	/// @brief Copy Constructor
-	CalcList(const CalcList& ref);
-
-	/// @brief Construct from strings with default separator ("")
-	CalcList(const CalString& ref);
-
-	//--- Operators ---
-
-	/// @brief Assignment operator
-	CalcList& operator= (const CalcList& ref);
-
-	/// @brief Assignment from breaking down strings
-	CalcList& operator= (const CalString& ref);
-
-	/// @brief Adds to list
-	CalcList& operator+= (const CalcList& ref);
-	CalcList& operator+= (const CalString& ref);
-
-	CalcList operator+ (const CalcList& ref);
-	CalcList operator+ (const CalString& ref);
-
-	/// @brief adds new string to list - similar to "+=", but returns number of items
-	int add(const CalString& str);
-
-	/// @brief Output CalcList as string.
-	std::string asString() const;
-
-private:
-
-	void stringSeparator(const CalString& ref, const CalString& separator =" ");
 
 };
 

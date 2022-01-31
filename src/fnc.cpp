@@ -2,7 +2,7 @@
 ///
 /// @brief This file is the main program entry for fnc application.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "iniParser.h"
 
 #include "exec.h"
+#include "execInteractive.h"
 
 // Following used to set the fnc-Configuration (version, etc.)
 #include "fncConfig.h"
@@ -34,7 +35,6 @@ static std::string s_iniFileName = FNC_INI_FILENAME; // "fnc.ini";
 static std::string s_iniFile;
 
 
-/// @brief Prints version number - make sure CMake is run with configuration
 void print_version(const char* arg)
 {
 	if ((strlen(arg) == 0) || (arg[0] == '.'))
@@ -45,6 +45,13 @@ void print_version(const char* arg)
 	{
 		std::cout << arg << " - Version " << FNC_VERSION_MAJOR << "." << FNC_VERSION_MINOR << std::endl;
 	}
+}
+
+/// @brief Prints version number - make sure CMake is run with configuration
+void print_header(const char* arg)
+{
+	print_version(arg);
+
 	std::cout << "Copyright (c) 2019-2021 - mmashimo" << std::endl << std::endl;
 }
 
@@ -76,6 +83,8 @@ int main(int argc, char** argv)
 	// Use generic expression-processor
 	Exec cmd;
 
+	bool verboseMode{false};
+
 #ifdef FNC_PROJECT
 	IniParser iniConfig(s_iniPath, s_iniFileName, true);
 
@@ -100,11 +109,13 @@ int main(int argc, char** argv)
 	if (argc == 1)
 	{
 		// Launches fnc in interactive mode
-		print_version(argv[0]);
-		std::cout << "Entering interactive mode. '?' for help; 'q<Enter>' to quit" << std::endl;
+		print_header(argv[0]);
+		std::cout << "Entering interactive mode - 'q<Enter>' to quit. 'help' or '?' for help" << std::endl;
 
 		// Do Interactive mode
-		return cmd.runInteractive();
+		ExecInteractive runCmd;
+
+		return runCmd.runInteractive();
 	}
 
 	int ar = 1;
@@ -117,9 +128,9 @@ int main(int argc, char** argv)
 		char* option = argv[1] + 2;
 		command = option;
 
-		if (strcmp(option, "help") == 0)
+		if ((strcmp(option, "help") == 0) || (option[0] == 'h') || (option[0] == 'H'))
 		{
-			print_version(argv[0]);
+			print_header(argv[0]);
 			if (argc == 2)
 			{
 				// "--help" only
@@ -140,7 +151,19 @@ int main(int argc, char** argv)
 		else if (strncmp(option, "vers", 4) == 0)
 		{
 			print_version(argv[0]);
+			// Don't continue with parsing expressions
+			exit(0);
+		}
+		else if ((strncmp(option, "verb", 4) == 0) || (option[0] == 'v') || (option[0] == 'V'))
+		{
+			// Set verbose mode in non-interactive mode
+			verboseMode = true;
+		}
+		else if (strncmp(option, "deb", 3) == 0)
+		{
 			// Continue with parsing expressions
+			verboseMode = true;
+			Exec::s_verbose = 0xFF;
 		}
 		else
 		{
@@ -200,7 +223,10 @@ int main(int argc, char** argv)
 #endif
 	}
 
-	std::cout << "Execute: '" << command << "'" << std::endl;
+	if (verboseMode)
+	{
+		std::cout << "Execute: '" << command << "'" << std::endl;
+	}
 
 	cmd.execute(command);
 

@@ -13,6 +13,9 @@
 #include<iostream>
 using namespace std;
 
+
+#include "gtest/gtest.h"
+
 std::string get_current_dir() {
    char buff[FILENAME_MAX]; //create string buffer to hold path
    GetCurrentDir( buff, FILENAME_MAX );
@@ -20,7 +23,12 @@ std::string get_current_dir() {
    return current_working_dir;
 }
 
-int main() {
+int main(int argc, char** argv) {
+#if 0
+	// Already captured if using C++ googletest
+	::testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
+#endif
    cout << getenv("HOME") << endl;
    cout << get_current_dir() << endl;
    int retCode = chdir("..");

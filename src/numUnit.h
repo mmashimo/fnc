@@ -2,7 +2,7 @@
 ///
 /// @brief Header for Unit Conversion and Number definitions.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -40,6 +40,8 @@ typedef struct
 	CalString   formula;
 
 } ConversionFunction;
+
+using UnitDefList = std::vector<UnitDefs>;
 
 /// @brief Unit Definition class.
 /// Currently used to convert like units.
@@ -88,28 +90,46 @@ public:
 	bool operator!=(const std::string& unitKey);
 
 	/// @brief Compares unit string, either keyed or parsed
-	bool compareKeyString(const std::string& strUnit) const;
+	bool compareKeyString(const std::string& strUnit) const
+	{
+		return m_units.unitKey == strUnit;
+	}
 
 	/// @brief Checks if the unit is of UnitType
-	bool isUnitType(const UnitType& unitType) const;
+	bool isUnitType(const UnitType& unitType) const
+	{
+		return m_units.unitType == unitType;
+	}
 
-	/// @brief Checks if the UNit is an Radian Angle type
+	/// @brief Checks if the Unit is an Radian Angle type - good for pre-check transcendental
 	bool isRad() const;
 
 	/// @brief Check if Unit is Default (just number)
 	bool isDefault() const;
 
 	/// @brief Returns unit-key-string
-	const CalString& keyString() const;
+	const CalString& keyString() const
+	{
+		return m_units.unitKey;
+	}
 
 	/// @brief Returns UnitType for saving in variables
-	const UnitType& unitType() const;
+	const UnitType& unitType() const
+	{
+		return m_units.unitType;
+	}
 
 	/// @brief Returns expected NumberType
-	const NumberType& numberType() const;
+	const NumberType& numberType() const
+	{
+		return m_units.expectType;
+	}
 
 	/// @brief Shows displayed string
-	const CalString& asString() const;
+	const CalString& asString() const
+	{
+		return m_units.displayed;
+	}
 
 	/// @brief Finds the expression that converts to another unit
 	bool findConversion(const NumUnit& to, CalString& func);
@@ -121,7 +141,7 @@ public:
 	static int findUnits(const CalString& string, UnitDefs& def);
 
 	/// @brief List of Units other functions can use, if needed
-	static std::vector<UnitDefs> s_units;
+	// static std::vector<UnitDefs> s_units;
 
 private:
 	void copyHelper(const NumUnit& ref)

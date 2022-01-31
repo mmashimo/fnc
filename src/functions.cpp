@@ -6,7 +6,7 @@
 /// from stack-like number-lists. Both unary and binary functions are performed
 /// as if running in a stack-oriented (RPN-like) operation.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -34,13 +34,14 @@ std::string FunctionType::s_defaultAngle{"deg"};
 std::string FunctionType::s_defaultExpression{"Dec"};
 std::string FunctionType::s_defaultFPP{"bin-64"};
 
-bool nop(NumStack& params)
+bool nop(NumStack& params, CalcList& message)
 {
+	message.push_back("NOP");
 	return true;
 }
 
 // Binary Functions
-bool add(NumStack& params)
+bool add(NumStack& params, CalcList& message)
 {
 	Num result;
 	// Second param
@@ -72,7 +73,7 @@ bool add(NumStack& params)
 	return true;
 }
 
-bool sub(NumStack& params)
+bool sub(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp1 = params.back();
@@ -102,7 +103,7 @@ bool sub(NumStack& params)
 	return true;
 }
 
-bool mul(NumStack& params)
+bool mul(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp1 = params.back();
@@ -136,7 +137,7 @@ bool mul(NumStack& params)
 	return true;
 }
 
-bool div(NumStack& params)
+bool div(NumStack& params, CalcList& message)
 {
 	bool ok{true};
 	Num result;
@@ -163,29 +164,37 @@ bool div(NumStack& params)
 	else
 	{
 		// Assume integer math
-		int64_t rem = inp0.m_lValue % inp1.m_lValue;
-		if (rem == 0)
+		if (inp1.m_lValue == 0)
 		{
-			if (inp1.m_lValue != 0)
-			{
-				result.m_lValue = inp0.m_lValue / inp1.m_lValue;
-			}
-			else
-			{
-				ok = false;
-			}
+			ok = false;
+			message.push_back("!!! Attempting to divide by zero");
 		}
 		else
 		{
-			// Convert to doubles;
-			result.convertTo(NUM_DOUBLE);
-			if (inp1.m_lValue != 0.)
+			int64_t rem = inp0.m_lValue % inp1.m_lValue;
+			if (rem == 0)
 			{
-				result.m_dValue = static_cast<double>(inp0.m_lValue) / static_cast<double>(inp1.m_lValue);
+				if (inp1.m_lValue != 0)
+				{
+					result.m_lValue = inp0.m_lValue / inp1.m_lValue;
+				}
+				else
+				{
+					ok = false;
+				}
 			}
 			else
 			{
-				ok = false;
+				// Convert to doubles;
+				result.convertTo(NUM_DOUBLE);
+				if (inp1.m_lValue != 0.)
+				{
+					result.m_dValue = static_cast<double>(inp0.m_lValue) / static_cast<double>(inp1.m_lValue);
+				}
+				else
+				{
+					ok = false;
+				}
 			}
 		}
 	}
@@ -208,7 +217,7 @@ bool div(NumStack& params)
 	return true;
 }
 
-bool pow(NumStack& params)
+bool pow(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp1 = params.back();
@@ -240,7 +249,7 @@ bool pow(NumStack& params)
 	return true;
 }
 
-bool max(NumStack& params)
+bool max(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp0 = params.back();
@@ -264,7 +273,7 @@ bool max(NumStack& params)
 	return true;
 }
 
-bool min(NumStack& params)
+bool min(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp0 = params.back();
@@ -290,7 +299,7 @@ bool min(NumStack& params)
 
 
 // UNARY functions
-bool root(NumStack& params)
+bool root(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp1 = params.back();
@@ -305,11 +314,13 @@ bool root(NumStack& params)
 	result.convertTo(NUM_DOUBLE);
 	result.m_dValue = pow(inp0.m_dValue, (1./inp1.m_dValue));
 
+	FunctionType::convertUnits(result, inp0, inp1);
+
 	params.push_back(result);
 	return true;
 }
 
-bool mod(NumStack& params)
+bool mod(NumStack& params, CalcList& message)
 {
 	Num result;
 	Num inp1 = params.back();
@@ -333,7 +344,7 @@ bool mod(NumStack& params)
 	return true;
 }
 
-bool sqrt(NumStack& params)
+bool sqrt(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -343,7 +354,7 @@ bool sqrt(NumStack& params)
 	return true;
 }
 
-bool abs(NumStack& params)
+bool abs(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -359,7 +370,7 @@ bool abs(NumStack& params)
 	return true;
 }
 
-bool neg(NumStack& params)
+bool neg(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -375,7 +386,7 @@ bool neg(NumStack& params)
 	return true;
 }
 
-bool inv(NumStack& params)
+bool inv(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -385,7 +396,7 @@ bool inv(NumStack& params)
 	return true;
 }
 
-bool exp(NumStack& params)
+bool exp(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -395,7 +406,7 @@ bool exp(NumStack& params)
 	return true;
 }
 
-bool exp10(NumStack& params)
+bool exp10(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -405,7 +416,7 @@ bool exp10(NumStack& params)
 	return true;
 }
 
-bool exp2(NumStack& params)
+bool exp2(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -421,7 +432,7 @@ bool exp2(NumStack& params)
 	return true;
 }
 
-bool ln(NumStack& params)
+bool ln(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -431,7 +442,7 @@ bool ln(NumStack& params)
 	return true;
 }
 
-bool log10(NumStack& params)
+bool log10(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -441,7 +452,7 @@ bool log10(NumStack& params)
 	return true;
 }
 
-bool log2(NumStack& params)
+bool log2(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -451,7 +462,7 @@ bool log2(NumStack& params)
 	return true;
 }
 
-bool sin(NumStack& params)
+bool sin(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -462,7 +473,7 @@ bool sin(NumStack& params)
 	return true;
 }
 
-bool cos(NumStack& params)
+bool cos(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -473,7 +484,7 @@ bool cos(NumStack& params)
 	return true;
 }
 
-bool tan(NumStack& params)
+bool tan(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -484,7 +495,7 @@ bool tan(NumStack& params)
 	return true;
 }
 
-bool asin(NumStack& params)
+bool asin(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -495,7 +506,7 @@ bool asin(NumStack& params)
 	return true;
 }
 
-bool acos(NumStack& params)
+bool acos(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -506,7 +517,7 @@ bool acos(NumStack& params)
 	return true;
 }
 
-bool atan(NumStack& params)
+bool atan(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -517,7 +528,7 @@ bool atan(NumStack& params)
 	return true;
 }
 
-bool sinh(NumStack& params)
+bool sinh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -527,7 +538,7 @@ bool sinh(NumStack& params)
 	return true;
 }
 
-bool cosh(NumStack& params)
+bool cosh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -537,7 +548,7 @@ bool cosh(NumStack& params)
 	return true;
 }
 
-bool tanh(NumStack& params)
+bool tanh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -547,7 +558,7 @@ bool tanh(NumStack& params)
 	return true;
 }
 
-bool asinh(NumStack& params)
+bool asinh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -557,7 +568,7 @@ bool asinh(NumStack& params)
 	return true;
 }
 
-bool acosh(NumStack& params)
+bool acosh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -567,7 +578,7 @@ bool acosh(NumStack& params)
 	return true;
 }
 
-bool atanh(NumStack& params)
+bool atanh(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	params.pop_back();
@@ -577,7 +588,7 @@ bool atanh(NumStack& params)
 	return true;
 }
 
-bool ceil(NumStack& params)
+bool ceil(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	if (result.isInteger())
@@ -590,7 +601,7 @@ bool ceil(NumStack& params)
 	return true;
 }
 
-bool floor(NumStack& params)
+bool floor(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	if (result.isInteger())
@@ -603,7 +614,7 @@ bool floor(NumStack& params)
 	return true;
 }
 
-bool frac(NumStack& params)
+bool frac(NumStack& params, CalcList& message)
 {
 	Num result = params.back();
 	if (result.isInteger())
@@ -618,7 +629,7 @@ bool frac(NumStack& params)
 
 }
 
-bool convert(NumStack& params)
+bool convert(NumStack& params, CalcList& message)
 {
 	// Second param - convert to number unit/format
 	Num inp1 = params.back();
@@ -633,6 +644,8 @@ bool convert(NumStack& params)
 		return false;
 	}
 
+	inp0.setUnit(inp1.unit());
+
 	// Replace last value
 	params.pop_back();
 
@@ -641,7 +654,7 @@ bool convert(NumStack& params)
 	return true;
 }
 
-bool assign(NumStack& params)
+bool assign(NumStack& params, CalcList& message)
 {
     // Function is run-time assignment - NOTE: parsed assignment, var ahead
     Num inp1 = params.back();
@@ -657,12 +670,12 @@ bool assign(NumStack& params)
 
     // Takes the last in computation and saves the value in the variable set
     inp1.setNumber(params.back());
-    inp1.addOrUpdateVariable();
+    inp1.addOrUpdateVariable(message);
 
     return true;
 }
 
-bool swapStack(NumStack& params)
+bool swapStack(NumStack& params, CalcList& message)
 {
     Num inp1 = params.back();
     params.pop_back();
@@ -674,7 +687,7 @@ bool swapStack(NumStack& params)
 	return true;
 }
 
-bool clearStack(NumStack& params)
+bool clearStack(NumStack& params, CalcList& message)
 {
     // Remove the variable off the stack
     params.pop_back();
@@ -769,7 +782,7 @@ FunctionType::FunctionType(const FunctionValue& type)
 	// Otherwise keep it at its initialized state
 }
 
-bool FunctionType::run(NumStack& params)
+bool FunctionType::run(NumStack& params, CalcList& message)
 {
 	if (m_function.f == nullptr)
 	{
@@ -800,7 +813,7 @@ bool FunctionType::run(NumStack& params)
 		else
 		{
 			// Check if last value needs value
-			params.back().confirm();
+			params.back().confirm(message);
 		}
 
 		if (m_function.mode == MODE_BINARY)
@@ -812,11 +825,11 @@ bool FunctionType::run(NumStack& params)
 			}
 
 			// In binary function, need to check if second to last value exits
-			params[len-2].confirm();
+			params[len-2].confirm(message);
 		}
 	}
 
-	return (*m_function.f)(params);
+	return (*m_function.f)(params, message);
 }
 
 void FunctionType::convertUnits(Num& result, Num& inp0, Num& inp1)

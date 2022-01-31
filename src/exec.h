@@ -6,7 +6,7 @@
 /// execution library. It has both interactive (CLI) and direct argument
 /// string processing.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "func.h"
@@ -31,13 +32,18 @@
 #include "num.h"
 
 #include "calstring.h"
+#include "calclist.h"
 
 /// @brief Base Bridged object used to run functional/numeric constructs
 
 class Exec
 {
 public:
+	/// @brief Constructor
 	Exec();
+
+	/// @brief Desctructor
+	~Exec() = default;
 
 	bool execute(const CalString& equ);
 
@@ -47,25 +53,19 @@ public:
 
 	bool run(NumStack& params);
 
-	bool inputParseAndRun(Num& inp, CalString& eq);
-
-	bool inputParseAndRun(Num& inp, CalString& eq, NumStack& stack);
-
-	int runInteractive();
-
 	const std::string errMessage() const { return m_message.asString(); }
 
-	/// @brief Process interactive commands.
-	/// @param[in,out] entry - command string - may alter to pass into exec
-	/// @return true if interactive command is processed.
-	bool processInteractive(CalString& entry);
-
-	static void printInteractiveHelp(const CalString& args);
+	static bool inputParseAndRun(Num& inp, CalString& eq);
 
 	static bool s_showUndefinedVarMsg;
 	static bool s_quitMsgFirstTime;
+	
+	static uint32_t s_verbose;
 
-private:
+protected:
+
+	/// @brief Executes function string with new stack
+	bool inputParseAndRun(Num& inp, CalString& eq, NumStack& stack);
 
 	// Keep records of all messages
 	CalcList m_message;

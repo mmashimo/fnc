@@ -10,7 +10,7 @@
 /// but modified for MS-VC from gcc and returned back to gcc. There are known
 /// issues and dissimilarities that are not fully vetted.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by

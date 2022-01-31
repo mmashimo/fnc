@@ -2,7 +2,7 @@
 ///
 /// @brief Header for Num - Number class.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "calstring.h"
+#include "calclist.h"
 
 #include "numDefs.h"
 
@@ -84,7 +85,7 @@ public:
 	bool convertFromRads();
 
     /// @brief Checks if value or variables need updating.
-    bool confirm();
+    bool confirm(CalcList& message);
 
 	// Types
 	bool isDouble() const 	{ return (m_type & NUM_DOUBLE) != 0; }
@@ -96,9 +97,16 @@ public:
 	bool isUnsetVar() const { return m_type & (NUM_VAR | NUM_VAR_UNSET); }
     bool isConstant() const { return m_type & NUM_CONSTS; }
 
+	// Returns number by it value
+	const double& asDouble() const { return m_dValue; }
+	const int64_t& asInt64() const { return m_lValue; }
+
     /// @brief Sets a new value to a variable (if settable).
     /// @return true if variable set, otherwise false if this number is not a variable
     bool setNumber(const Num& value);
+
+	/// @brief Sets the unit of the number
+	Num& setUnit(const NumUnit& unit);
 
     void setAsVariable(const bool unset = false);
 
@@ -107,29 +115,41 @@ public:
 
 	bool updateFromUser();
 
-    void updateFromVariable(const ConstantVars& var);
-
     // Adds itself as a variable
-    bool addOrUpdateVariable();
+    bool addOrUpdateVariable(CalcList& message);
 
 	// Prints number as formatted value
 	CalString asString() const;
 
+	// Gets the unit object
+	const NumUnit& unit() const { return m_unit; }
+
+	const NumberType& type() const { return m_type; }
+
 	const CalString& varName() const { return m_varName; }
+
+	const CalString& numString() const { return m_numString; }
 
 	static bool isNumber(const CalString& string);
 
 	static bool isFormat(const std::string& string);
 
-	static bool isVariable(const CalString& string, int& len, ConstantVars& var);
+	static bool isVariable(const CalString& str, int& len, ConstantVars& var);
 
-    static void showVariables(const bool showAll = false);
+	/// @brief If Variable is found, use the "Num" value preserved in variable list
+	static bool isVariable(const std::string& str, Num& out);
+
+    static void showVariables(bool showAll = false);
+
 
 private:
 	void copyHelper(const Num& ref);
 
 	// Does the number conversion. "to" Num is populated with new value
 	bool convertUnit(const Num& to, CalString& func);
+
+	/// @brief Update this Num object using the 'ConstantVars' from pick list
+	void updateFromVariable(const ConstantVars& var);
 
 public:
 
@@ -148,6 +168,7 @@ public:
 		} m_complex;
 	};
 
+	// String used to form the numeric value (as opposed to the string used to this Num)
 	CalString m_numString;
 
 	// Number-Type - also describes which numeric descriptor is in use
@@ -159,7 +180,7 @@ public:
 	// Units - desired numeric representation if complex, like time
 	CalString m_format;
 
-	// Real number or varName
+	// Variable Name used to extract data or the actual number string used to create this Num
 	CalString m_varName;
 
 	// Automatic formatting - defaults to true (cleans up decimal/format)

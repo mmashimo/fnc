@@ -2,7 +2,7 @@
 ///
 /// @brief Header file for Func - handling functions and parameters.
 ///
-/// @copyright 2019-2021 - M.Mashimo and all licensors. All rights reserved.
+/// @copyright 2009-2022 - M.Mashimo and all licensors. All rights reserved.
 ///
 ///  This program is free software: you can redistribute it and/or modify
 ///  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "num.h"
 
 #include "calstring.h"
+#include "calclist.h"
 #include "functions.h"
 
 #include <string>
@@ -74,7 +75,7 @@ public:
 	// Returns position of the string where function stopped. -1 if entire string is used
 	bool parse(CalString& code, CalcList& message, bool& bDone);
 
-	bool run(NumStack& initValue);
+	bool run(NumStack& initValue, CalcList& message);
 
 	bool isNop() const { return m_function.isNop(); }
 

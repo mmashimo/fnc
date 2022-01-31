@@ -1,38 +1,9 @@
 
 TODO:
 ----
-## Interactive mode
-	[x] - backspace (erase)
-	[x] - left/right cursor
-	[x] - HOME/END key
-	[x] - DEL key
-	[x] - Insert Mode
-	[ ] - Cursor for Insert/Delete Mode
-	[x] - Up/Down command line history
-	[ ] - Parse (but not execute) function to check syntax
-	[ ] - Enter interactive mode after Syntax failure (or suppress using flags - in inline functions)
-## Variable entries
-	[x] - Variable setting (ex: y=2.4)
-		[x] - before equation: ex. y=2.4 2pi*y+y
-		[x] - Set variable on the fly (ex. 2pi*2.4=x; 5.2-x)
-			[x] - Parse variables: (ex. y=3.5)
-			[x] - Save value into variable (ex. 2pi=x)
-			[x] - Differentiate: x=2.5 with 2pi=x where a space is needed between = and x
-		[x] - Make sure is reloaded after equations: ex. 2pi*y=y 5.2-y
-		[x] - Make sure constants are not overwritten: ex. 2pi*y=pi 5.2-pi
-	[ ] - Parse-checking, especially for parentheses-nesting
-## Variable Format and Units
-	[ ] - Formatting/unit passing: ex. y:F:'%3.1f'=3.2 (where y is always expressed formatted C)
-	[ ] - C-format with text: (:'$%.2f'). Look for % or ' (ending ', recognize \')
-	[ ] - Stacked variable handling: ex. y 4.5 x <= each stack variable is multiplied
-		[ ] - if number already in stack, we should be able to do: ':"::mm' to go from inch '"' to 'mm' on the stack
-		[ ] - multiply/add everything in the stack
-		[ ] - access stack by index "[1]". If not available, ask.
-		[ ] - relative stack access e.g. "[-1]"
-		[ ] - swap last "[-]" - especially for subtract/divide
 ## Numeric formatting
 	[x] - Default should be %.9f
-		[ ] - Format using %f (General with cleanup)
+		[x] - Format using %f (General with cleanup)
 	[x] - Default (clean) formatting 2.540000000 => 2.54 (using standard '%f' format)
 	[x] - Hexadecial "0x" %X (input)
 	[ ] - Numeric formatting (similar C-style):
@@ -45,6 +16,38 @@ TODO:
 	[ ] - Float representations: ex. f->e
 	[ ] - Integer representations of float: ex. 3.5 => 3 (floor) or =>4 (ceiling/round)
 	[ ] - UTF-8 use - esp. of degrees, inches, Ohms, micro and fractions, etc.
+## Interactive mode
+	[x] - backspace (erase)
+	[x] - left/right cursor
+	[x] - HOME/END key
+	[x] - DEL key
+	[x] - Insert Mode
+	[ ] - Cursor for Insert/Delete Mode
+	[x] - Up/Down command line history
+	[ ] - Parse (but not execute) function to check syntax
+	[ ] - Enter interactive mode after Syntax failure (or suppress using flags - in inline functions)
+	[ ] - Copy/Paste from clipboard
+	[ ] - Undo/Redo from interactive
+	[ ] - Interactive 'help' (?) command
+## Variable entries
+	[x] - Variable setting (ex: y=2.4)
+		[x] - before equation: ex. y=2.4 2pi*y+y
+		[x] - Set variable on the fly (ex. 2pi*2.4=x; 5.2-x)
+			[x] - Parse variables: (ex. y=3.5)
+			[x] - Save value into variable (ex. 2pi=x)
+			[x] - Differentiate: x=2.5 with 2pi=x where a space is needed between = and x
+		[x] - Make sure is reloaded after equations: ex. 2pi*y=y 5.2-y
+		[x] - Make sure constants are not overwritten: ex. 2pi*y=pi 5.2-pi
+	[ ] - Parse-only mode for checking, especially for parentheses-nesting (debug text needed)
+## Variable Format and Units
+	[ ] - Formatting/unit passing in variables: ex. y:F:'%3.1f'=3.2 (where y is always expressed formatted C)
+	[ ] - C-format with text: (:'$%.2f'). Look for % or ' (ending ', recognize \')
+	[ ] - Stacked variable handling: ex. y 4.5 x <= each stack variable is multiplied
+		[ ] - if number already in stack, we should be able to do: ':"::mm' to go from inch '"' to 'mm' on the stack
+		[ ] - multiply/add everything in the stack
+		[ ] - access stack by index "[1]". If not available, ask.
+		[ ] - relative stack access e.g. "[-1]"
+		[ ] - swap last "[-]" - especially for subtract/divide
 ## Date-Time parsing
 	[ ] - Need Time/date formatting:
 		> fnc 6:03:29p + 1:43m<br>
@@ -114,7 +117,7 @@ TODO:
 Interactive Mode Commands:
 -------------------------
 [ ] - Need history (in .fnc files)
-[ ] - Need undo (last command)
+[ ] - Need undo (last command) in interactive mode
 [ ] - Need list of functions (in help), both defined and created
 [ ] - Need list of units and its conversion (if unit defined, all its conversion)
 [ ] - List of (successful) equations
@@ -129,6 +132,14 @@ Vars to add:
 -----------
 [ ] - Angle: Gradian
 [ ] - Temperature: Kelvin, Rankine
-[ ] - Volume
+[ ] - Volume (oz, ml, tsp, tbsp)
 [ ]
+
+
+Known Bugs (not yet fixed):
+----------
+[ ] - gtest not building correctly in Linux
+[ ] - '45-6' returns '45'
+
+
 
